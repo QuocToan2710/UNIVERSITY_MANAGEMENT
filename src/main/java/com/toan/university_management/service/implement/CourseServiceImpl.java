@@ -1,0 +1,94 @@
+package com.toan.university_management.service.implement;
+
+import com.toan.university_management.dto.request.CourseRequest;
+import com.toan.university_management.dto.response.CourseResponse;
+import com.toan.university_management.entity.Course;
+import com.toan.university_management.entity.Student;
+import com.toan.university_management.entity.Teacher;
+import com.toan.university_management.exception.AppException;
+import com.toan.university_management.exception.ErrorCode;
+import com.toan.university_management.mapper.CourseMapper;
+import com.toan.university_management.repository.CourseRepository;
+import com.toan.university_management.repository.StudentRepository;
+import com.toan.university_management.repository.TeacherRepository;
+import com.toan.university_management.service.CourseService;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
+public class CourseServiceImpl implements CourseService {
+    CourseRepository courseRepository;
+    TeacherRepository teacherRepository;
+    StudentRepository studentRepository;
+    CourseMapper courseMapper;
+
+    @Override
+    public CourseResponse createCourse(CourseRequest request) {
+        Course course = courseMapper.toCourse(request);
+
+        Teacher teacher = teacherRepository.findById(request.getTeacherId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        course.setTeacher(teacher);
+
+        if (request.getStudentIds() != null && !request.getStudentIds().isEmpty()) {
+            List<Student> students = studentRepository.findAllById(request.getStudentIds());
+            course.setStudents(students);
+        }
+
+        return courseMapper.toCourseResponse(courseRepository.save(course));
+    }
+
+    @Override
+    public CourseResponse updateCourse(String id, CourseRequest request) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        courseMapper.updateCourse(course, request);
+
+        return courseMapper.toCourseResponse(courseRepository.save(course));
+    }
+
+    @Override
+    public void deleteCourse(String id) {
+        if (!courseRepository.existsById(String.valueOf(id))) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
+        courseRepository.deleteById(String.valueOf(id));
+    }
+
+    @Override
+    public CourseResponse getCourseById(String id) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return courseMapper.toCourseResponse(course);
+    }
+
+    @Override
+    public List<CourseResponse> getAllCourses() {
+        return courseMapper.toCourseResponseList(courseRepository.findAll());
+    }
+
+    @Override
+    public List<CourseResponse> getCoursesByTeacherName(String teacherName) {
+        var flatCourses = courseRepository.findCourseWithTeacherInfoByTeacherName(teacherName);
+
+        return flatCourses.stream()
+                .map(flat -> {
+                    var course = courseRepository.findById(flat.getId())
+                            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+                    var dto = courseMapper.toCourseResponse(course);
+                    dto.setTeacherName(flat.getTeacherName());
+                    dto.setTeacherEmail(flat.getTeacherEmail());
+                    return dto;
+                })
+                .toList();
+    }
+}
