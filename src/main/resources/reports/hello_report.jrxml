@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport
+        xmlns="http://jasperreports.sourceforge.net/jasperreports"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+        http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+        name="hello_report"
+        pageWidth="595"
+        pageHeight="842"
+        columnWidth="555"
+        leftMargin="20"
+        rightMargin="20"
+        topMargin="20"
+        bottomMargin="20">
+
+    <!-- DATA FIELD -->
+    <field name="studentName" class="java.lang.String"/>
+    <field name="className" class="java.lang.String"/>
+    <field name="score" class="java.lang.Integer"/>
+
+    <!-- TITLE -->
+    <title>
+        <band height="40">
+            <staticText>
+                <reportElement x="0" y="0" width="555" height="40"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <text><![CDATA[HELLO JASPER REPORT]]></text>
+            </staticText>
+        </band>
+    </title>
+
+    <!-- COLUMN HEADER -->
+    <columnHeader>
+        <band height="25">
+
+            <!-- Student Name -->
+            <staticText>
+                <reportElement x="0" y="0" width="200" height="25"/>
+                <textElement textAlignment="Center">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Student Name]]></text>
+            </staticText>
+
+            <!-- Class -->
+            <staticText>
+                <reportElement x="200" y="0" width="155" height="25"/>
+                <textElement textAlignment="Center">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Class]]></text>
+            </staticText>
+
+            <!-- Score -->
+            <staticText>
+                <reportElement x="355" y="0" width="200" height="25"/>
+                <textElement textAlignment="Center">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Score]]></text>
+            </staticText>
+
+        </band>
+    </columnHeader>
+
+    <!-- DETAIL -->
+    <detail>
+        <band height="25">
+
+            <!-- studentName -->
+            <textField>
+                <reportElement x="0" y="0" width="200" height="25"/>
+                <textFieldExpression><![CDATA[$F{studentName}]]></textFieldExpression>
+            </textField>
+
+            <!-- className -->
+            <textField>
+                <reportElement x="200" y="0" width="155" height="25"/>
+                <textFieldExpression><![CDATA[$F{className}]]></textFieldExpression>
+            </textField>
+
+            <!-- score -->
+            <textField>
+                <reportElement x="355" y="0" width="200" height="25"/>
+                <textFieldExpression><![CDATA[$F{score}]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </detail>
+
+</jasperReport>
