@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -18,7 +19,7 @@ public class StudentResponse {
     String fullName;
     String email;
     String phoneNumber;
-    LocalDate dob;
+    Date dob;
     String gender;
     String address;
 }

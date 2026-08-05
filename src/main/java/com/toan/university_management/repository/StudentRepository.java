@@ -1,5 +1,6 @@
 package com.toan.university_management.repository;
 
+import com.toan.university_management.dto.reports.StudentReportDTO;
 import com.toan.university_management.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,4 +17,19 @@ public interface StudentRepository extends JpaRepository<Student, String> {
 
     @Query("SELECT DISTINCT s FROM Student s LEFT JOIN FETCH s.courses")
     List<Student> findAllWithCourses();
+
+    @Query("""
+    SELECT new com.toan.university_management.dto.reports.StudentReportDTO(
+        s.id,
+        s.studentCode,
+        s.fullName,
+        s.dob,
+        s.gender,
+        s.phoneNumber,
+        s.email,
+        s.address
+    )
+    FROM Student s
+""")
+    List<StudentReportDTO> getAllStudentForReport();
 }

@@ -4,6 +4,7 @@ import com.toan.university_management.entity.User;
 import com.toan.university_management.entity.Role;
 import com.toan.university_management.repository.RoleRepository;
 import com.toan.university_management.repository.UserRepository;
+import com.toan.university_management.repository.PermissionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -29,16 +30,26 @@ public class ApplicationInitconfig {
             value = "datasource.driver-class-name",
             havingValue = "com.mysql.cj.jdbc.Driver"
     )
-    ApplicationRunner applicationRunner(UserRepository userRepository, RoleRepository roleRepository){
+    ApplicationRunner applicationRunner(UserRepository userRepository, RoleRepository roleRepository, PermissionRepository permissionRepository){
         return args ->{
             if ( userRepository.findByUsername("admin").isEmpty()){
+                // Get all permissions or create default ones
+                var allPermissions = permissionRepository.findAll();
+                
                 var adminRole = roleRepository.findByName("ADMIN")
                         .orElseGet(() -> {
                             var newRole = new Role();
                             newRole.setName("ADMIN");
                             newRole.setDescription("Administrator role");
+                            newRole.setPermissions(Set.copyOf(allPermissions));
                             return roleRepository.save(newRole);
                         });
+                
+                // If role already exists, add all permissions to it
+                if (!allPermissions.isEmpty() && (adminRole.getPermissions() == null || adminRole.getPermissions().isEmpty())) {
+                    adminRole.setPermissions(Set.copyOf(allPermissions));
+                    roleRepository.save(adminRole);
+                }
 
                 User user = User.builder()
                         .username("admin")

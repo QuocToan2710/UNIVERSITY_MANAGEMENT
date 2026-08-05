@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.Date;
 
 @Data
 @NoArgsConstructor
@@ -15,7 +16,7 @@ public class StudentSummary {
     String fullName;
     String email;
     String phoneNumber;
-    LocalDate dob;
+    Date dob;
     String gender;
     String address;
 

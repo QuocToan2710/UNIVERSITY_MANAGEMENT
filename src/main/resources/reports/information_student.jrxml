@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="student_list_report"
+              pageWidth="842"
+              pageHeight="595"
+              orientation="Landscape"
+              columnWidth="802"
+              leftMargin="20"
+              rightMargin="20"
+              topMargin="20"
+              bottomMargin="20"
+              uuid="63350697-01ea-4fe9-acc2-751d6f62d83f">
+
+    <!-- ========= PARAMETERS ========= -->
+    <parameter name="createdDate" class="java.util.Date"/>
+
+    <!-- ========= FIELDS ========= -->
+    <field name="id" class="java.lang.String"/>
+    <field name="studentCode" class="java.lang.String"/>
+    <field name="fullName" class="java.lang.String"/>
+    <field name="dob" class="java.util.Date"/>
+    <field name="gender" class="java.lang.String"/>
+    <field name="phoneNumber" class="java.lang.String"/>
+    <field name="email" class="java.lang.String"/>
+    <field name="address" class="java.lang.String"/>
+
+    <!-- ========= TITLE ========= -->
+    <title>
+        <band height="50">
+            <staticText>
+                <reportElement x="0" y="10" width="802" height="30"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="DejaVu Sans"
+                          size="18"
+                          isBold="true"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[DANH SÁCH SINH VIÊN]]></text>
+            </staticText>
+        </band>
+    </title>
+
+    <!-- ========= COLUMN HEADER ========= -->
+    <columnHeader>
+        <band height="30">
+
+            <!-- STT -->
+            <staticText>
+                <reportElement x="0" y="0" width="40" height="30"/>
+                <textElement textAlignment="Center">
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[STT]]></text>
+            </staticText>
+
+            <!-- Mã SV -->
+            <staticText>
+                <reportElement x="40" y="0" width="90" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[Mã SV]]></text>
+            </staticText>
+
+            <!-- Họ tên -->
+            <staticText>
+                <reportElement x="130" y="0" width="120" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[Họ tên]]></text>
+            </staticText>
+
+            <!-- Ngày sinh -->
+            <staticText>
+                <reportElement x="250" y="0" width="90" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[Ngày sinh]]></text>
+            </staticText>
+
+            <!-- Giới tính -->
+            <staticText>
+                <reportElement x="340" y="0" width="70" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[Giới tính]]></text>
+            </staticText>
+
+            <!-- SĐT -->
+            <staticText>
+                <reportElement x="410" y="0" width="110" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[SĐT]]></text>
+            </staticText>
+
+            <!-- Email -->
+            <staticText>
+                <reportElement x="520" y="0" width="140" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[Email]]></text>
+            </staticText>
+
+            <!-- Địa chỉ -->
+            <staticText>
+                <reportElement x="660" y="0" width="142" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <text><![CDATA[Địa chỉ]]></text>
+            </staticText>
+
+        </band>
+    </columnHeader>
+
+    <!-- ========= DETAIL ========= -->
+    <detail>
+        <band height="30">
+
+            <textField>
+                <reportElement x="0" y="0" width="40" height="30"/>
+                <textElement textAlignment="Center">
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="40" y="0" width="90" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{studentCode}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="130" y="0" width="120" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{fullName}]]></textFieldExpression>
+            </textField>
+
+            <textField pattern="dd/MM/yyyy">
+                <reportElement x="250" y="0" width="90" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{dob}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="340" y="0" width="70" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{gender}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="410" y="0" width="110" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{phoneNumber}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="520" y="0" width="140" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{email}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="660" y="0" width="142" height="30"/>
+                <textElement>
+                    <font fontName="DejaVu Sans"
+                          pdfFontName="fonts/DejaVuSans.ttf"
+                          pdfEncoding="Identity-H"
+                          isPdfEmbedded="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{address}]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </detail>
+
+</jasperReport>

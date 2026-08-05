@@ -2,7 +2,6 @@ package com.toan.university_management.controller.reports;
 
 import com.toan.university_management.service.reports.ReportService;
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/reports")
+@RequestMapping("/report")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ReportController {
     ReportService reportService;
