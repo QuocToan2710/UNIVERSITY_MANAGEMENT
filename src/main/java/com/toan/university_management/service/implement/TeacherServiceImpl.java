@@ -27,7 +27,7 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public TeacherResponse createTeacher(TeacherRequest request) {
-        if (teacherRepository.existsById(request.getTeacherCode())){
+        if (teacherRepository.existsByTeacherCode(request.getTeacherCode())){
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         Teacher teacher = teacherMapper.toTeacher(request);
@@ -59,10 +59,10 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public void deleteTeacher(String id) {
-        if (!teacherRepository.existsById(String.valueOf(id))) {
+        if (!teacherRepository.existsById(id)) {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
-        teacherRepository.deleteById(String.valueOf(id));
+        teacherRepository.deleteById(id);
     }
 
     @Override

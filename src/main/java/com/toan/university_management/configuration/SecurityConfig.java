@@ -1,19 +1,18 @@
 package com.toan.university_management.configuration;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.enums.Role;
 import com.toan.university_management.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,13 +25,17 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableCaching
 public class SecurityConfig {
-    private final String[] publicEndpoints = {"/users","/auth/token","/auth/introspect", "/auth/logout", "/auth/refresh"};
+    private final CustomJwtDecoder customJwtDecoder;
+    private final DynamicApiAuthorizationManager dynamicApiAuthorizationManager;
 
-    private CustomJwtDecoder customJwtDecoder;
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:4173}")
+    private List<String> allowedOrigins;
 
-    public SecurityConfig(CustomJwtDecoder customJwtDecoder) {
+    public SecurityConfig(CustomJwtDecoder customJwtDecoder, DynamicApiAuthorizationManager dynamicApiAuthorizationManager) {
         this.customJwtDecoder = customJwtDecoder;
+        this.dynamicApiAuthorizationManager = dynamicApiAuthorizationManager;
     }
 
     @Bean
@@ -42,11 +45,7 @@ public class SecurityConfig {
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
 
         httpSecurity.authorizeHttpRequests(request ->
-                request.requestMatchers(HttpMethod.POST, publicEndpoints).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users",  "/reports/hello")
-                        .hasRole(Role.ADMIN.name())
-
-                        .anyRequest().authenticated());
+                request.anyRequest().access(dynamicApiAuthorizationManager));
 
         httpSecurity.addFilterBefore(tokenBlacklistFilter,
                 org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
@@ -73,9 +72,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("*"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -93,10 +93,6 @@ public class SecurityConfig {
         return jwtAuthenticationConverter;
     }
 
-    @Bean
-    PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder(10);
-    }
     private void writeErrorResponse(HttpServletResponse response,
                                     int status,
                                     ErrorCode errorCode) throws IOException {

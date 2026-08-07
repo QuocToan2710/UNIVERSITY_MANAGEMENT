@@ -4,7 +4,7 @@ package com.toan.university_management.controller;
 import com.toan.university_management.dto.request.RoleRequest;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.dto.response.RoleResponse;
-import com.toan.university_management.service.implement.RoleServiceImpl;
+import com.toan.university_management.service.RoleService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class RoleController {
-    RoleServiceImpl roleService;
+    RoleService roleService;
 
     @PostMapping
     ApiResponse<RoleResponse> create(@RequestBody RoleRequest request){
@@ -32,6 +32,13 @@ public class RoleController {
     ApiResponse<List<RoleResponse>> getAll(){
         return ApiResponse.<List<RoleResponse>>builder()
                 .result(roleService.getAllRole())
+                .build();
+    }
+
+    @PutMapping("/{roleName}/permissions")
+    ApiResponse<RoleResponse> updatePermissions(@PathVariable String roleName, @RequestBody java.util.Set<String> permissions) {
+        return ApiResponse.<RoleResponse>builder()
+                .result(roleService.updateRolePermissions(roleName, permissions))
                 .build();
     }
 

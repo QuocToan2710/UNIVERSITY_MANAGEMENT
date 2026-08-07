@@ -20,7 +20,8 @@ public class GlobalExceptionHandler {
     private static final String MIN_ATTRIBUTE = "min";
 
     @ExceptionHandler(value = RuntimeException.class)
-    ResponseEntity<ApiResponse> handingRuntimeException(RuntimeException exception){
+    ResponseEntity<ApiResponse> handleRuntimeException(RuntimeException exception){
+        log.error("Unhandled runtime exception", exception);
         ApiResponse apiResponse = new ApiResponse();
         apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
         apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
@@ -28,7 +29,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(value = AppException.class)
-    ResponseEntity<ApiResponse> handingRuntimeException(AppException exception){
+    ResponseEntity<ApiResponse> handleAppException(AppException exception){
         ErrorCode errorCode = exception.getErrorCode();
         ApiResponse apiResponse = new ApiResponse();
         apiResponse.setCode(errorCode.getCode());
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(value = AccessDeniedException.class)
-    ResponseEntity<ApiResponse> handlingAccessDeniedException(AccessDeniedException exception) {
+    ResponseEntity<ApiResponse> handleAccessDeniedException(AccessDeniedException exception) {
         ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
 
         return ResponseEntity.status(errorCode.getStatusCode())
@@ -50,7 +51,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse> handingValidation(MethodArgumentNotValidException exception){
+    ResponseEntity<ApiResponse> handleValidation(MethodArgumentNotValidException exception){
         String enumkey = exception.getFieldError().getDefaultMessage();
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
         Map<String, Object> attributes = null;
@@ -62,7 +63,8 @@ public class GlobalExceptionHandler {
 
             attributes = contrainViolation.getConstraintDescriptor().getAttributes();
             log.info(attributes.toString());
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid error code key passed to validation: {}", enumkey);
         }
 
         ApiResponse apiResponse = new ApiResponse();

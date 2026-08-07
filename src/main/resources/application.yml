@@ -3,10 +3,10 @@ spring:
     name: university-management
 
   datasource:
-    url: jdbc:mysql://localhost:3306/university
+    url: ${DB_URL:jdbc:mysql://localhost:3306/university}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: 123456
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
 
   jpa:
     show-sql: true
@@ -19,11 +19,14 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
-      password:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 jwt:
-  signer-key: "2c0306580240c4c6df087492195a8bd95a8dfa0d646f7c48cf89dbc8621ba226"
+  signer-key: ${JWT_SIGNER_KEY:2c0306580240c4c6df087492195a8bd95a8dfa0d646f7c48cf89dbc8621ba226}
   valid-duration: 3600
   refreshable-duration: 360000
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:4173}

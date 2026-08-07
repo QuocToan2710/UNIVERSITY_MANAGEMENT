@@ -6,11 +6,12 @@ import com.toan.university_management.dto.response.PermissionResponse;
 import com.toan.university_management.entity.Permission;
 import com.toan.university_management.mapper.PermissionMapper;
 import com.toan.university_management.repository.PermissionRepository;
-import com.toan.university_management.service.PermissonService;
+import com.toan.university_management.service.PermissionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,11 +20,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
-public class PermissionSeviceImpl implements PermissonService{
+public class PermissionServiceImpl implements PermissionService {
     PermissionRepository permissionRepository;
     PermissionMapper permissionMapper;
 
     @Override
+    @CacheEvict(value = "publicPermissions", allEntries = true)
     public PermissionResponse createPermission(PermissionRequest request) {
         Permission permission = permissionMapper.toPermission(request);
         permission = permissionRepository.save(permission);
@@ -36,6 +38,7 @@ public class PermissionSeviceImpl implements PermissonService{
     }
 
     @Override
+    @CacheEvict(value = "publicPermissions", allEntries = true)
     public void deletePermission(String permission) {
         permissionRepository.deleteById(permission);
     }

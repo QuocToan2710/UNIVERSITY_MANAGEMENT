@@ -46,6 +46,18 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    public RoleResponse updateRolePermissions(String roleName, java.util.Set<String> permissions) {
+        var role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new com.toan.university_management.exception.AppException(com.toan.university_management.exception.ErrorCode.ROLE_NOT_FOUND));
+
+        var permissionEntities = permissionRepository.findAllById(permissions);
+        role.setPermissions(new HashSet<>(permissionEntities));
+
+        role = roleRepository.save(role);
+        return roleMapper.toRoleResponse(role);
+    }
+
+    @Override
     public void deleteRole(String role) {
         roleRepository.deleteById(role);
     }

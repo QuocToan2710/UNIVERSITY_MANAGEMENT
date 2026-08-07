@@ -24,6 +24,6 @@ public class User {
     String email;
     String fullName;
 
-    @ManyToMany
+    @ManyToMany(fetch = jakarta.persistence.FetchType.EAGER)
     Set<Role> roles;
 }

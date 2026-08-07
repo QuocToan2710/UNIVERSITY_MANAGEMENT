@@ -4,7 +4,7 @@ package com.toan.university_management.controller;
 import com.toan.university_management.dto.request.CourseRequest;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.dto.response.CourseResponse;
-import com.toan.university_management.service.implement.CourseServiceImpl;
+import com.toan.university_management.service.CourseService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CourseController {
-    CourseServiceImpl courseService;
+    CourseService courseService;
 
     @PostMapping
     ApiResponse<CourseResponse>  create(@RequestBody CourseRequest request) {

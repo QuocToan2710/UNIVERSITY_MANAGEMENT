@@ -4,7 +4,7 @@ package com.toan.university_management.controller;
 import com.toan.university_management.dto.request.UserRequest;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.dto.response.UserResponse;
-import com.toan.university_management.service.implement.UserServiceImpl;
+import com.toan.university_management.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
-    UserServiceImpl userService;
+    UserService userService;
 
     @PostMapping
     ApiResponse<UserResponse> createUser(@RequestBody @Valid UserRequest request) {
@@ -36,6 +36,12 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/myInfo")
+    ApiResponse<UserResponse> getMyInfo() {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.getMyInfo())
+                .build();
+    }
 
     @GetMapping("/{userId}")
     ApiResponse<UserResponse> getUser(@PathVariable("userId") String userId) {
@@ -44,18 +50,17 @@ public class UserController {
                 .build();
     }
 
-
-    @GetMapping("/myInfo")
-    ApiResponse<UserResponse> getMyInfo() {
+    @PutMapping("update")
+    ApiResponse<UserResponse> updateUser(@RequestBody @Valid UserRequest request) {
         return ApiResponse.<UserResponse>builder()
-                .result(userService.getMyInfo())
+                .result(userService.updateUser(request))
                 .build();
     }
 
-    @PutMapping("update")
-    ApiResponse<UserResponse> updateUser(@RequestBody UserRequest request) {
+    @PutMapping("/{userId}/roles")
+    ApiResponse<UserResponse> updateUserRoles(@PathVariable("userId") String userId, @RequestBody List<String> roleNames) {
         return ApiResponse.<UserResponse>builder()
-                .result(userService.updateUser( request))
+                .result(userService.updateUserRoles(userId, roleNames))
                 .build();
     }
 

@@ -4,7 +4,7 @@ package com.toan.university_management.controller;
 import com.toan.university_management.dto.request.TeacherRequest;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.dto.response.TeacherResponse;
-import com.toan.university_management.service.implement.TeacherServiceImpl;
+import com.toan.university_management.service.TeacherService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TeacherController {
-    TeacherServiceImpl teacherService;
+    TeacherService teacherService;
 
     @PostMapping
     ApiResponse<TeacherResponse>  createTeacher(@RequestBody TeacherRequest request) {

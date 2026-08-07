@@ -57,10 +57,10 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public void deleteCourse(String id) {
-        if (!courseRepository.existsById(String.valueOf(id))) {
+        if (!courseRepository.existsById(id)) {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
-        courseRepository.deleteById(String.valueOf(id));
+        courseRepository.deleteById(id);
     }
 
     @Override
@@ -77,18 +77,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseResponse> getCoursesByTeacherName(String teacherName) {
-        var flatCourses = courseRepository.findCourseWithTeacherInfoByTeacherName(teacherName);
-
-        return flatCourses.stream()
-                .map(flat -> {
-                    var course = courseRepository.findById(flat.getId())
-                            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-
-                    var dto = courseMapper.toCourseResponse(course);
-                    dto.setTeacherName(flat.getTeacherName());
-                    dto.setTeacherEmail(flat.getTeacherEmail());
-                    return dto;
-                })
-                .toList();
+        List<Course> courses = courseRepository.findByTeacherNameWithTeacherInfo(teacherName);
+        return courseMapper.toCourseResponseList(courses);
     }
 }

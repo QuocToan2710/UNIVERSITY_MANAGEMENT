@@ -20,6 +20,6 @@ public class Role {
     String name;
     String description;
 
-    @ManyToMany
+    @ManyToMany(fetch = jakarta.persistence.FetchType.EAGER)
     Set<Permission> permissions;
 }

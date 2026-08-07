@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,8 +26,9 @@ public class StudentServiceImpl implements StudentService {
     StudentMapper studentMapper;
 
     @Override
+    @Transactional
     public StudentResponse createStudent(StudentRequest request) {
-        if (studentRepository.existsById(request.getStudentCode())){
+        if (studentRepository.existsByStudentCode(request.getStudentCode())){
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         Student student = studentMapper.toStudent(request);
@@ -48,6 +50,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional
     public StudentResponse updateStudent(String id, StudentRequest request) {
 
         Student student = studentRepository.findById(id)
@@ -58,11 +61,12 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public void deleteStudent(String  id) {
-        if (!studentRepository.existsById(String.valueOf(id))) {
+    @Transactional
+    public void deleteStudent(String id) {
+        if (!studentRepository.existsById(id)) {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
-        studentRepository.deleteById(String.valueOf(id));
+        studentRepository.deleteById(id);
     }
 
 
