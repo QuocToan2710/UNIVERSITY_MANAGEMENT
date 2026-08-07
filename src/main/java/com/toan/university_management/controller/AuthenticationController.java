@@ -2,6 +2,7 @@ package com.toan.university_management.controller;
 
 
 import com.nimbusds.jose.JOSEException;
+import com.toan.university_management.annotation.PermissionMeta;
 import com.toan.university_management.dto.request.AuthenticationRequest;
 import com.toan.university_management.dto.request.IntrospectRequest;
 import com.toan.university_management.dto.request.LogoutRequest;
@@ -26,9 +27,11 @@ import java.text.ParseException;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@PermissionMeta(module = "AUTH")
 public class AuthenticationController {
     AuthenticationService authenticationService;
 
+    @PermissionMeta(value = "Đăng nhập hệ thống", isPublic = true)
     @PostMapping("/token")
     ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request){
         var result =  authenticationService.authenticate(request);
@@ -37,25 +40,26 @@ public class AuthenticationController {
                 .build();
     }
 
+    @PermissionMeta(value = "Kiểm tra token", isPublic = true)
     @PostMapping("/introspect")
-    ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request)
-            throws ParseException, JOSEException {
+    ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request) {
         var result =  authenticationService.introspect(request);
         return ApiResponse.<IntrospectResponse>builder()
                 .result(result)
                 .build();
     }
 
+    @PermissionMeta(value = "Đăng xuất", isPublic = true)
     @PostMapping("/logout")
-    ApiResponse<Void> logout(@RequestBody LogoutRequest request)
-            throws ParseException, JOSEException {
+    ApiResponse<Void> logout(@RequestBody LogoutRequest request) {
         authenticationService.logout(request);
         return ApiResponse.<Void>builder()
                 .build();
     }
 
+    @PermissionMeta(value = "Làm mới token", isPublic = true)
     @PostMapping("/refresh")
-    ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request) throws ParseException, JOSEException {
+    ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request) {
         var result =  authenticationService.refreshToken(request);
         return ApiResponse.<AuthenticationResponse>builder()
                 .result(result)

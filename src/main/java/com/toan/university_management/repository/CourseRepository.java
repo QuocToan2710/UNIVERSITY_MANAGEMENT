@@ -26,4 +26,7 @@ public interface CourseRepository extends JpaRepository<Course, String> /*Course
         WHERE LOWER(t.fullName) LIKE LOWER(CONCAT('%', :teacherName, '%'))
     """)
     List<CourseTeacherProjection> findCourseWithTeacherInfoByTeacherName(@Param("teacherName") String teacherName);
+
+    @Query("SELECT DISTINCT c FROM Course c LEFT JOIN FETCH c.teacher t WHERE LOWER(t.fullName) LIKE LOWER(CONCAT('%', :teacherName, '%'))")
+    List<Course> findByTeacherNameWithTeacherInfo(@Param("teacherName") String teacherName);
 }

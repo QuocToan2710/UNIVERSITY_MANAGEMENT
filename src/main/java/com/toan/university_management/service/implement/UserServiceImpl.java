@@ -70,6 +70,20 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(request.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         userMapper.updateUser(user, request);
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        return userMapper.toUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    public UserResponse updateUserRoles(String id, List<String> roleNames) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        var roles = roleRepository.findAllById(roleNames);
+        user.setRoles(new java.util.HashSet<>(roles));
 
         return userMapper.toUserResponse(userRepository.save(user));
     }
@@ -87,9 +101,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(String id) {
-        if (!userRepository.existsById(String.valueOf(id))) {
+        if (!userRepository.existsById(id)) {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
-        userRepository.deleteById(String.valueOf(id));
+        userRepository.deleteById(id);
     }
 }

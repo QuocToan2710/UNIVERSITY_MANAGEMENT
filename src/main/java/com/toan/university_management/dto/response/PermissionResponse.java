@@ -12,4 +12,8 @@ import lombok.experimental.FieldDefaults;
 public class PermissionResponse {
     String name;
     String description;
+    String method;
+    String endpoint;
+    String module;
+    boolean isPublic;
 }
