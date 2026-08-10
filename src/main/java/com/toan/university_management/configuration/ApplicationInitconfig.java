@@ -18,10 +18,6 @@ public class ApplicationInitconfig {
     AdminInitializer adminInitializer;
 
     @Bean
-    @ConditionalOnProperty(prefix = "spring",
-            value = "datasource.driver-class-name",
-            havingValue = "com.mysql.cj.jdbc.Driver"
-    )
     ApplicationRunner applicationRunner(){
         return args -> adminInitializer.initAdmin(passwordEncoder);
     }

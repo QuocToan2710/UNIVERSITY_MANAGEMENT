@@ -9,7 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.Map;
 import java.util.Objects;
 
@@ -50,21 +50,65 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(value = org.springframework.dao.DataIntegrityViolationException.class)
+    ResponseEntity<ApiResponse> handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException exception) {
+        log.error("Database constraint violation", exception);
+        ErrorCode errorCode = ErrorCode.DATA_INTEGRITY_VIOLATION;
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(value = org.springframework.http.converter.HttpMessageNotReadableException.class)
+    ResponseEntity<ApiResponse> handleHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException exception) {
+        ErrorCode errorCode = ErrorCode.INVALID_JSON_BODY;
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(value = org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiResponse> handleMethodArgumentTypeMismatchException(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException exception) {
+        ErrorCode errorCode = ErrorCode.INVALID_PARAM_TYPE;
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(value = org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ApiResponse> handleHttpRequestMethodNotSupportedException(org.springframework.web.HttpRequestMethodNotSupportedException exception) {
+        ErrorCode errorCode = ErrorCode.METHOD_NOT_SUPPORTED;
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+    }
+
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse> handleValidation(MethodArgumentNotValidException exception){
-        String enumkey = exception.getFieldError().getDefaultMessage();
+        var fieldError = exception.getFieldError();
+        String enumkey = fieldError != null ? fieldError.getDefaultMessage() : null;
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
         Map<String, Object> attributes = null;
         try {
-            errorCode = ErrorCode.valueOf(enumkey);
+            if (enumkey != null) {
+                errorCode = ErrorCode.valueOf(enumkey);
+            }
 
-            var contrainViolation = exception.getBindingResult()
-                    .getAllErrors().getFirst().unwrap(ConstraintViolation.class);
-
-            attributes = contrainViolation.getConstraintDescriptor().getAttributes();
-            log.info(attributes.toString());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid error code key passed to validation: {}", enumkey);
+            var allErrors = exception.getBindingResult().getAllErrors();
+            if (!allErrors.isEmpty()) {
+                var contrainViolation = allErrors.getFirst().unwrap(ConstraintViolation.class);
+                attributes = contrainViolation.getConstraintDescriptor().getAttributes();
+            }
+        } catch (Exception e) {
+            log.warn("Cannot extract validation attributes for key: {}", enumkey);
         }
 
         ApiResponse apiResponse = new ApiResponse();

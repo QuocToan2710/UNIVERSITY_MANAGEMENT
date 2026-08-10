@@ -64,8 +64,6 @@ public class SecurityConfig {
                         writeErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.UNAUTHENTICATED))
         );
 
-        httpSecurity.csrf(AbstractHttpConfigurer::disable);
-
         return httpSecurity.build();
     }
 

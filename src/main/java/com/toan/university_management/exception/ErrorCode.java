@@ -17,7 +17,20 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006,"Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007,"You do not have permission", HttpStatus.FORBIDDEN),
     INVALID_DOB(1008,"Your age must be at least {min}", HttpStatus.BAD_REQUEST),
-    ROLE_NOT_FOUND(1009,"Role not existed", HttpStatus.NOT_FOUND)
+    ROLE_NOT_FOUND(1009,"Role not existed", HttpStatus.NOT_FOUND),
+    DATA_INTEGRITY_VIOLATION(1010, "Data constraint violation or duplicate entry in database", HttpStatus.CONFLICT),
+    INVALID_JSON_BODY(1011, "Malformed or invalid JSON request body", HttpStatus.BAD_REQUEST),
+    INVALID_PARAM_TYPE(1012, "Invalid parameter type in request URL", HttpStatus.BAD_REQUEST),
+    METHOD_NOT_SUPPORTED(1013, "HTTP method not supported for this endpoint", HttpStatus.METHOD_NOT_ALLOWED),
+    STUDENT_NOT_FOUND(1014, "Student not found", HttpStatus.NOT_FOUND),
+    TEACHER_NOT_FOUND(1015, "Teacher not found", HttpStatus.NOT_FOUND),
+    COURSE_NOT_FOUND(1016, "Course not found", HttpStatus.NOT_FOUND),
+    CLASS_GROUP_NOT_FOUND(2001, "Class group not found", HttpStatus.NOT_FOUND),
+    CLASS_GROUP_EXISTED(2002, "Class group with this code already exists", HttpStatus.BAD_REQUEST),
+    SCHEDULE_NOT_FOUND(2003, "Schedule not found", HttpStatus.NOT_FOUND),
+    SCHEDULE_TEACHER_CONFLICT(2004, "Teacher already has a class scheduled at this time", HttpStatus.CONFLICT),
+    SCHEDULE_ROOM_CONFLICT(2005, "Room is already occupied at this time", HttpStatus.CONFLICT),
+    SCHEDULE_TIME_INVALID(2006, "End time must be after start time", HttpStatus.BAD_REQUEST)
     ;
 
 

@@ -1,10 +1,10 @@
 package com.toan.university_management.configuration;
 
 import com.toan.university_management.annotation.PermissionMeta;
-import com.toan.university_management.entity.Permission;
-import com.toan.university_management.entity.Role;
-import com.toan.university_management.repository.PermissionRepository;
-import com.toan.university_management.repository.RoleRepository;
+import com.toan.university_management.entity.identity.Permission;
+import com.toan.university_management.entity.identity.Role;
+import com.toan.university_management.repository.identity.PermissionRepository;
+import com.toan.university_management.repository.identity.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -159,3 +159,4 @@ public class EndpointAutoScanner implements ApplicationRunner {
         return action + " " + module + " (" + pattern + ")";
     }
 }
+

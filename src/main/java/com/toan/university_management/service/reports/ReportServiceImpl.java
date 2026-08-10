@@ -2,7 +2,7 @@ package com.toan.university_management.service.reports;
 
 
 import com.toan.university_management.dto.reports.StudentReportRow;
-import com.toan.university_management.entity.Student;
+import com.toan.university_management.entity.masterdata.Student;
 import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -52,3 +52,4 @@ public class ReportServiceImpl implements ReportService{
         }
     }
 }
+

@@ -1,10 +1,10 @@
 package com.toan.university_management.configuration;
 
-import com.toan.university_management.entity.Role;
-import com.toan.university_management.entity.User;
-import com.toan.university_management.repository.PermissionRepository;
-import com.toan.university_management.repository.RoleRepository;
-import com.toan.university_management.repository.UserRepository;
+import com.toan.university_management.entity.identity.Role;
+import com.toan.university_management.entity.identity.User;
+import com.toan.university_management.repository.identity.PermissionRepository;
+import com.toan.university_management.repository.identity.RoleRepository;
+import com.toan.university_management.repository.identity.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +28,7 @@ public class AdminInitializer {
         initDefaultRoles();
 
         var allPermissions = permissionRepository.findAll();
-        
+
         var adminRole = roleRepository.findByName("ADMIN")
                 .orElseGet(() -> {
                     var newRole = new Role();
@@ -36,30 +36,68 @@ public class AdminInitializer {
                     newRole.setDescription("Administrator role");
                     newRole.setPermissions(new HashSet<>(allPermissions));
                     return roleRepository.save(newRole);
+
+
+
                 });
 
-        var existingAdmin = userRepository.findByUsername("admin");
-        if (existingAdmin.isEmpty()){
-            User user = User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode("admin"))
-                    .roles(Set.of(adminRole))
-                    .build();
+        var teacherRole = roleRepository.findByName("TEACHER").orElseThrow();
+        var studentRole = roleRepository.findByName("STUDENT").orElseThrow();
 
+        // Assign default permissions to roles
+        adminRole.setPermissions(new HashSet<>(allPermissions));
+        roleRepository.save(adminRole);
+
+        Set<com.toan.university_management.entity.identity.Permission> teacherPerms = allPermissions.stream()
+                .filter(p -> "GET".equalsIgnoreCase(p.getMethod()) &&
+                        ("STUDENT_MANAGEMENT".equalsIgnoreCase(p.getModule()) ||
+                         "COURSE_MANAGEMENT".equalsIgnoreCase(p.getModule()) ||
+                         "TEACHER_MANAGEMENT".equalsIgnoreCase(p.getModule())))
+                .collect(java.util.stream.Collectors.toSet());
+        teacherRole.setPermissions(teacherPerms);
+        roleRepository.save(teacherRole);
+
+        Set<com.toan.university_management.entity.identity.Permission> studentPerms = allPermissions.stream()
+
+                .filter(p -> "GET".equalsIgnoreCase(p.getMethod()) &&
+                        ("COURSE_MANAGEMENT".equalsIgnoreCase(p.getModule()) ||
+                         "TEACHER_MANAGEMENT".equalsIgnoreCase(p.getModule())))
+                .collect(java.util.stream.Collectors.toSet());
+
+        studentRole.setPermissions(studentPerms);
+        roleRepository.save(studentRole);
+
+        // 1. Admin Account
+        initUser("admin", "admin", "admin@university.edu.vn", "Quản Trị Viên Hệ Thống", Set.of(adminRole), passwordEncoder);
+
+        // 2. Teacher Account
+        initUser("teacher", "teacher123", "teacher@university.edu.vn", "Giảng Viên Nguyễn Văn B", Set.of(teacherRole), passwordEncoder);
+
+        // 3. Student Account
+        initUser("student", "student123", "student@university.edu.vn", "Sinh Viên Trần Thị C", Set.of(studentRole), passwordEncoder);
+    }
+
+    private void initUser(String username, String rawPassword, String email, String fullName, Set<Role> roles, PasswordEncoder passwordEncoder) {
+        var existingUser = userRepository.findByUsername(username);
+        if (existingUser.isEmpty()) {
+            User user = User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(rawPassword))
+                    .email(email)
+                    .fullName(fullName)
+                    .roles(roles)
+                    .build();
             userRepository.save(user);
-            log.warn("admin user created with default password: admin");
+            log.info("Initialized default user: {} with role(s): {}", username, roles.stream().map(Role::getName).toList());
         } else {
-            User adminUser = existingAdmin.get();
-            String encodedPassword = adminUser.getPassword();
-            if (encodedPassword == null || encodedPassword.isBlank() || !passwordEncoder.matches("admin", encodedPassword)) {
-                adminUser.setPassword(passwordEncoder.encode("admin"));
-                if (adminUser.getRoles() == null) {
-                    adminUser.setRoles(new HashSet<>(Set.of(adminRole)));
-                } else if (!adminUser.getRoles().contains(adminRole)) {
-                    adminUser.getRoles().add(adminRole);
-                }
-                userRepository.save(adminUser);
-                log.info("admin password auto-synced to BCrypt encoded password: admin");
+            User user = existingUser.get();
+            if (user.getPassword() == null || user.getPassword().isBlank() || !passwordEncoder.matches(rawPassword, user.getPassword())) {
+                user.setPassword(passwordEncoder.encode(rawPassword));
+                user.setRoles(new HashSet<>(roles));
+                if (user.getFullName() == null || user.getFullName().isBlank()) user.setFullName(fullName);
+                if (user.getEmail() == null || user.getEmail().isBlank()) user.setEmail(email);
+                userRepository.save(user);
+                log.info("Updated default user password/roles for: {}", username);
             }
         }
     }
@@ -84,3 +122,4 @@ public class AdminInitializer {
         }
     }
 }
+

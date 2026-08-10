@@ -1,7 +1,7 @@
 package com.toan.university_management.service.reports;
 
 import com.toan.university_management.dto.reports.StudentReportDTO;
-import com.toan.university_management.repository.StudentRepository;
+import com.toan.university_management.repository.masterdata.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;

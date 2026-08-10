@@ -1,6 +1,6 @@
 package com.toan.university_management.configuration;
 
-import com.toan.university_management.repository.PermissionRepository;
+import com.toan.university_management.repository.identity.PermissionRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +39,13 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             return new AuthorizationDecision(true);
         }
 
+        // 1.5. Allow Swagger UI & OpenAPI Spec Endpoints
+        if (antPathMatcher.match("/v3/api-docs/**", path) ||
+            antPathMatcher.match("/swagger-ui/**", path) ||
+            antPathMatcher.match("/swagger-ui.html", path)) {
+            return new AuthorizationDecision(true);
+        }
+
         // 2. Allow Public POST endpoints & DB marked isPublic permissions
         if ("POST".equalsIgnoreCase(method) && PUBLIC_POST_ENDPOINTS.contains(path)) {
             return new AuthorizationDecision(true);
@@ -60,6 +67,11 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
         Authentication authentication = authenticationSupplier.get();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             return new AuthorizationDecision(false);
+        }
+
+        // Allow any authenticated user to fetch their own profile
+        if ("GET".equalsIgnoreCase(method) && antPathMatcher.match("/users/myInfo", path)) {
+            return new AuthorizationDecision(true);
         }
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
@@ -91,3 +103,4 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
         return new AuthorizationDecision(false);
     }
 }
+

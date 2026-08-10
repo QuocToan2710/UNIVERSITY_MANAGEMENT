@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:universitytest;DB_CLOSE_DELAY=-1;NON_KEYWORDS=USER
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    show-sql: true
+    generate-ddl: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+jwt:
+  signer-key: 2c0306580240c4c6df087492195a8bd95a8dfa0d646f7c48cf89dbc8621ba226
+  valid-duration: 3600
+  refreshable-duration: 360000

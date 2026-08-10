@@ -1,7 +1,7 @@
 package com.toan.university_management.configuration;
 
 import com.nimbusds.jwt.SignedJWT;
-import com.toan.university_management.service.TokenBlacklistService;
+import com.toan.university_management.service.token.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,3 +40,4 @@ public class TokenBlacklistFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+
