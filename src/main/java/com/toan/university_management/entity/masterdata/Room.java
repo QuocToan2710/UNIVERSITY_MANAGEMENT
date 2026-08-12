@@ -1,0 +1,67 @@
+package com.toan.university_management.entity.masterdata;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Entity
+@Table(name = "room",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_room_code_deleted", columnNames = {"room_code", "deleted"})
+    },
+    indexes = {
+        @Index(name = "idx_room_building", columnList = "building_id"),
+        @Index(name = "idx_room_floor", columnList = "floor_id")
+    }
+)
+@SQLDelete(sql = "UPDATE room SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
+public class Room {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    Long id;
+
+    @Column(name = "room_code", nullable = false)
+    String roomCode;
+
+    @Column(name = "name", nullable = false)
+    String name;
+
+    @Column(name = "building_id")
+    Long buildingId;
+
+    @Column(name = "building")
+    String building;
+
+    @Column(name = "floor_id")
+    Long floorId;
+
+    @Column(name = "floor")
+    String floor;
+
+    @Column(name = "capacity")
+    Integer capacity;
+
+    @Column(name = "room_type")
+    String roomType;
+
+    @Column(name = "status", nullable = false)
+    String status; // ACTIVE, MAINTENANCE, INACTIVE
+
+    @Column(name = "description")
+    String description;
+
+    @Builder.Default
+    @Column(name = "deleted", nullable = false)
+    boolean deleted = false;
+}

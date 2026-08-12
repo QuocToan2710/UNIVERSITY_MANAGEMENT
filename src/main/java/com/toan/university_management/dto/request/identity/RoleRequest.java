@@ -1,6 +1,5 @@
 package com.toan.university_management.dto.request.identity;
 
-import com.toan.university_management.entity.identity.Permission;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,9 +11,9 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RoleRequest {
+    String id;
+    String roleCode;
     String name;
     String description;
     Set<String> permissions;
 }
-
-

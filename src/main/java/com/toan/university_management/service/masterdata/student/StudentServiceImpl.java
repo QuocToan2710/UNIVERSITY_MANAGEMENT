@@ -3,119 +3,160 @@ package com.toan.university_management.service.masterdata.student;
 import com.toan.university_management.dto.request.masterdata.StudentRequest;
 import com.toan.university_management.dto.response.masterdata.StudentResponse;
 import com.toan.university_management.entity.masterdata.ClassGroup;
+import com.toan.university_management.entity.masterdata.Major;
 import com.toan.university_management.entity.masterdata.Student;
 import com.toan.university_management.enums.StudentStatus;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;
 import com.toan.university_management.mapper.masterdata.StudentMapper;
 import com.toan.university_management.repository.masterdata.ClassGroupRepository;
+import com.toan.university_management.repository.masterdata.MajorRepository;
 import com.toan.university_management.repository.masterdata.StudentRepository;
-import com.toan.university_management.service.masterdata.student.StudentService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
+@Transactional
 public class StudentServiceImpl implements StudentService {
-
     StudentRepository studentRepository;
-    StudentMapper studentMapper;
     ClassGroupRepository classGroupRepository;
+    MajorRepository majorRepository;
+    StudentMapper studentMapper;
 
     @Override
-    @Transactional
     public StudentResponse createStudent(StudentRequest request) {
-        if (studentRepository.existsByStudentCode(request.getStudentCode())) {
+        if (studentRepository.existsByStudentCodeAndDeletedFalse(request.getStudentCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         Student student = studentMapper.toStudent(request);
 
-        // Gắn lớp học nếu có
-        if (request.getClassGroupId() != null && !request.getClassGroupId().isBlank()) {
-            ClassGroup classGroup = classGroupRepository.findById(request.getClassGroupId())
-                    .orElseThrow(() -> new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND));
-            student.setClassGroup(classGroup);
+        if (request.getClassGroupId() != null && !classGroupRepository.existsByIdAndDeletedFalse(request.getClassGroupId())) {
+            throw new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND);
         }
 
-        // Gắn trạng thái
-        if (request.getStatus() != null && !request.getStatus().isBlank()) {
-            try {
-                student.setStatus(StudentStatus.valueOf(request.getStatus()));
-            } catch (IllegalArgumentException e) {
-                student.setStatus(StudentStatus.ACTIVE);
-            }
+        if (request.getMajorId() != null && !majorRepository.existsByIdAndDeletedFalse(request.getMajorId())) {
+            throw new AppException(ErrorCode.MAJOR_NOT_FOUND);
+        }
+
+        if (request.getStatus() != null) {
+            student.setStatus(request.getStatus());
         } else {
             student.setStatus(StudentStatus.ACTIVE);
         }
 
-        return studentMapper.toStudentResponse(studentRepository.save(student));
+        student = studentRepository.save(student);
+        return enrichStudentResponse(student);
     }
 
     @Override
-    public StudentResponse getStudentById(String id) {
-        Student student = studentRepository.findByIdWithCourses(id)
+    public StudentResponse getStudentById(Long id) {
+        Student student = studentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
-        return studentMapper.toStudentResponse(student);
+        return enrichStudentResponse(student);
     }
 
     @Override
     public List<StudentResponse> getAllStudents() {
-        List<Student> students = studentRepository.findAllWithCourses();
-        return studentMapper.toStudentResponseList(students);
+        List<Student> students = studentRepository.findAll();
+        return enrichStudentResponses(students);
     }
 
     @Override
-    public org.springframework.data.domain.Page<StudentResponse> getAllStudents(org.springframework.data.domain.Pageable pageable) {
-        return studentRepository.findAll(pageable)
-                .map(studentMapper::toStudentResponse);
+    public Page<StudentResponse> getAllStudents(Pageable pageable) {
+        Page<Student> studentPage = studentRepository.findAllByDeletedFalse(pageable);
+        List<StudentResponse> content = enrichStudentResponses(studentPage.getContent());
+        return new PageImpl<>(content, pageable, studentPage.getTotalElements());
     }
 
     @Override
-    @Transactional
-    public StudentResponse updateStudent(String id, StudentRequest request) {
-        Student student = studentRepository.findById(id)
+    public StudentResponse updateStudent(Long id, StudentRequest request) {
+        Student student = studentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
 
         studentMapper.updateStudent(student, request);
 
-        // Cập nhật lớp học
-        if (request.getClassGroupId() != null && !request.getClassGroupId().isBlank()) {
-            ClassGroup classGroup = classGroupRepository.findById(request.getClassGroupId())
-                    .orElseThrow(() -> new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND));
-            student.setClassGroup(classGroup);
-        } else {
-            student.setClassGroup(null);
-        }
-
-        // Cập nhật trạng thái
-        if (request.getStatus() != null && !request.getStatus().isBlank()) {
-            try {
-                student.setStatus(StudentStatus.valueOf(request.getStatus()));
-            } catch (IllegalArgumentException e) {
-                // giữ nguyên status cũ
+        if (request.getClassGroupId() != null) {
+            if (!classGroupRepository.existsByIdAndDeletedFalse(request.getClassGroupId())) {
+                throw new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND);
             }
         }
 
-        return studentMapper.toStudentResponse(studentRepository.save(student));
+        if (request.getStatus() != null) {
+            student.setStatus(request.getStatus());
+        }
+
+        student = studentRepository.save(student);
+        return enrichStudentResponse(student);
     }
 
     @Override
-    @Transactional
-    public void deleteStudent(String id) {
-        if (!studentRepository.existsById(id)) {
+    public void deleteStudent(Long id) {
+        if (!studentRepository.existsByIdAndDeletedFalse(id)) {
             throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
         }
         studentRepository.deleteById(id);
     }
+
+    private StudentResponse enrichStudentResponse(Student student) {
+        StudentResponse response = studentMapper.toStudentResponse(student);
+        if (student.getClassGroupId() != null) {
+            classGroupRepository.findByIdAndDeletedFalse(student.getClassGroupId()).ifPresent(cg -> {
+                response.setClassCode(cg.getClassCode());
+                response.setClassGroupName(cg.getClassName());
+            });
+        }
+        if (student.getMajorId() != null) {
+            majorRepository.findByIdAndDeletedFalse(student.getMajorId()).ifPresent(m -> {
+                response.setMajorName(m.getName());
+            });
+        }
+        return response;
+    }
+
+    private List<StudentResponse> enrichStudentResponses(List<Student> students) {
+        if (students.isEmpty()) return Collections.emptyList();
+
+        Set<Long> classGroupIds = students.stream()
+                .map(Student::getClassGroupId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<Long> majorIds = students.stream()
+                .map(Student::getMajorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, ClassGroup> classGroupMap = classGroupRepository.findAllByIdInAndDeletedFalse(classGroupIds)
+                .stream().collect(Collectors.toMap(ClassGroup::getId, Function.identity()));
+
+        Map<Long, Major> majorMap = majorRepository.findAllByIdInAndDeletedFalse(majorIds)
+                .stream().collect(Collectors.toMap(Major::getId, Function.identity()));
+
+        return students.stream().map(s -> {
+            StudentResponse res = studentMapper.toStudentResponse(s);
+            if (s.getClassGroupId() != null && classGroupMap.containsKey(s.getClassGroupId())) {
+                ClassGroup cg = classGroupMap.get(s.getClassGroupId());
+                res.setClassCode(cg.getClassCode());
+                res.setClassGroupName(cg.getClassName());
+            }
+            if (s.getMajorId() != null && majorMap.containsKey(s.getMajorId())) {
+                res.setMajorName(majorMap.get(s.getMajorId()).getName());
+            }
+            return res;
+        }).toList();
+    }
 }
-
-
-

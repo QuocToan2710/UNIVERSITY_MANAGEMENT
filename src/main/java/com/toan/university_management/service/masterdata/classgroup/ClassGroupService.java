@@ -9,11 +9,9 @@ import java.util.List;
 
 public interface ClassGroupService {
     ClassGroupResponse createClassGroup(ClassGroupRequest request);
-    ClassGroupResponse updateClassGroup(String id, ClassGroupRequest request);
-    void deleteClassGroup(String id);
-    ClassGroupResponse getClassGroupById(String id);
-    Page<ClassGroupResponse> getAllClassGroups(Pageable pageable);
+    ClassGroupResponse getClassGroupById(Long id);
     List<ClassGroupResponse> getAllClassGroups();
+    Page<ClassGroupResponse> getAllClassGroups(Pageable pageable);
+    ClassGroupResponse updateClassGroup(Long id, ClassGroupRequest request);
+    void deleteClassGroup(Long id);
 }
-
-

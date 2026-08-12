@@ -1,30 +1,38 @@
 package com.toan.university_management.entity.identity;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Set;
-
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
+@Table(name = "role", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_role_code", columnNames = {"role_code"})
+})
 public class Role {
+
     @Id
-    @Column(name = "name")
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
+    String id;
+
+    @Column(name = "role_code", nullable = false)
+    String roleCode;
+
+    @Column(name = "name", nullable = false)
     String name;
 
     @Column(name = "description")
     String description;
-
-    @ManyToMany(fetch = jakarta.persistence.FetchType.EAGER)
-    Set<Permission> permissions;
 }
-

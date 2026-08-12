@@ -1,20 +1,18 @@
 package com.toan.university_management.dto.request.masterdata;
 
-
+import com.toan.university_management.enums.StudentStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
 import java.util.Date;
-import java.util.List;
 
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StudentRequest {
-
+    Long id;
     String studentCode;
     String fullName;
     String email;
@@ -22,9 +20,9 @@ public class StudentRequest {
     Date dob;
     String gender;
     String address;
-    String major;
     String enrollmentYear;
-    String status;          // ACTIVE, GRADUATED, SUSPENDED
-    String classGroupId;
+    StudentStatus status;
+    Long classGroupId;
+    Long majorId;
+    String userId;
 }
-

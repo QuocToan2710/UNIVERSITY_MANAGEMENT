@@ -9,13 +9,9 @@ import java.util.List;
 
 public interface TeacherService {
     TeacherResponse createTeacher(TeacherRequest request);
-    TeacherResponse getTeacherById(String id);
+    TeacherResponse getTeacherById(Long id);
     List<TeacherResponse> getAllTeachers();
     Page<TeacherResponse> getAllTeachers(Pageable pageable);
-    TeacherResponse updateTeacher(String id, TeacherRequest request);
-
-    void deleteTeacher(String  id);
-    List<TeacherResponse> getTeachersBySpecialization(String specialization);
+    TeacherResponse updateTeacher(Long id, TeacherRequest request);
+    void deleteTeacher(Long id);
 }
-
-

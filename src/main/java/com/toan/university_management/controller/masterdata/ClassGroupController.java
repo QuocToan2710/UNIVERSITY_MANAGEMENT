@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,57 +23,51 @@ import java.util.List;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ClassGroupController {
-
     ClassGroupService classGroupService;
 
     @PostMapping
-    public ApiResponse<ClassGroupResponse> create(@Valid @RequestBody ClassGroupRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<ClassGroupResponse> createClassGroup(@Valid @RequestBody ClassGroupRequest request) {
         return ApiResponse.<ClassGroupResponse>builder()
-                .message("Class group created successfully")
+                .message("Successfully created class group")
                 .result(classGroupService.createClassGroup(request))
                 .build();
     }
 
     @GetMapping
-    public ApiResponse<Page<ClassGroupResponse>> getAll(
-            @PageableDefault(page = 0, size = 20, sort = "classCode") Pageable pageable) {
+    ApiResponse<Page<ClassGroupResponse>> getAllClassGroups(
+            @PageableDefault(page = 0, size = 10, sort = "id") Pageable pageable) {
         return ApiResponse.<Page<ClassGroupResponse>>builder()
                 .result(classGroupService.getAllClassGroups(pageable))
                 .build();
     }
 
-    /** Endpoint không phân trang — dùng cho dropdown trong form */
     @GetMapping("/all")
-    public ApiResponse<List<ClassGroupResponse>> getAllList() {
+    ApiResponse<List<ClassGroupResponse>> getAllList() {
         return ApiResponse.<List<ClassGroupResponse>>builder()
                 .result(classGroupService.getAllClassGroups())
                 .build();
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ClassGroupResponse> getById(@PathVariable String id) {
+    ApiResponse<ClassGroupResponse> getClassGroupById(@PathVariable Long id) {
         return ApiResponse.<ClassGroupResponse>builder()
                 .result(classGroupService.getClassGroupById(id))
                 .build();
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<ClassGroupResponse> update(
-            @PathVariable String id,
-            @Valid @RequestBody ClassGroupRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<ClassGroupResponse> updateClassGroup(@PathVariable Long id, @Valid @RequestBody ClassGroupRequest request) {
         return ApiResponse.<ClassGroupResponse>builder()
-                .message("Class group updated successfully")
                 .result(classGroupService.updateClassGroup(id, request))
                 .build();
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<String> deleteClassGroup(@PathVariable Long id) {
         classGroupService.deleteClassGroup(id);
-        return ApiResponse.<String>builder()
-                .result("Class group deleted successfully")
-                .build();
+        return ApiResponse.<String>builder().result("Class group has been deleted successfully").build();
     }
 }
-
-

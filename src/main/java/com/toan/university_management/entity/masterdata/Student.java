@@ -4,34 +4,41 @@ import com.toan.university_management.enums.StudentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.util.Date;
-import java.util.List;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "student", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_student_code_deleted", columnNames = {"student_code", "deleted"})
-})
+@Table(name = "student", 
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_student_code_deleted", columnNames = {"student_code", "deleted"})
+    },
+    indexes = {
+        @Index(name = "idx_student_class_group", columnList = "class_group_id"),
+        @Index(name = "idx_student_major", columnList = "major_id"),
+        @Index(name = "idx_student_user", columnList = "user_id")
+    }
+)
 @SQLDelete(sql = "UPDATE student SET deleted = true WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class Student {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    String id;
 
-    @Column(name = "student_code")
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    Long id;
+
+    @Column(name = "student_code", nullable = false)
     String studentCode;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", nullable = false)
     String fullName;
 
     @Column(name = "email")
@@ -49,11 +56,8 @@ public class Student {
     @Column(name = "address")
     String address;
 
-    @Column(name = "major")
-    String major;                       // Ngành học
-
     @Column(name = "enrollment_year")
-    String enrollmentYear;              // Năm nhập học, VD: 2023
+    String enrollmentYear;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -64,12 +68,13 @@ public class Student {
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_group_id")
-    ClassGroup classGroup;              // Lớp học
+    // --- APPLICATION-LEVEL LOGICAL KEYS ---
+    @Column(name = "class_group_id")
+    Long classGroupId;
 
-    @ManyToMany
-    List<Course> courses;
+    @Column(name = "major_id")
+    Long majorId;
+
+    @Column(name = "user_id")
+    String userId;
 }
-
-

@@ -42,7 +42,7 @@ public class ClassScheduleController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ClassScheduleResponse> getById(@PathVariable String id) {
+    public ApiResponse<ClassScheduleResponse> getById(@PathVariable Long id) {
         return ApiResponse.<ClassScheduleResponse>builder()
                 .result(classScheduleService.getScheduleById(id))
                 .build();
@@ -50,7 +50,7 @@ public class ClassScheduleController {
 
     @PutMapping("/{id}")
     public ApiResponse<ClassScheduleResponse> update(
-            @PathVariable String id,
+            @PathVariable Long id,
             @Valid @RequestBody ClassScheduleRequest request) {
         return ApiResponse.<ClassScheduleResponse>builder()
                 .message("Schedule updated successfully")
@@ -59,7 +59,7 @@ public class ClassScheduleController {
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
+    public ApiResponse<String> delete(@PathVariable Long id) {
         classScheduleService.deleteSchedule(id);
         return ApiResponse.<String>builder()
                 .result("Schedule deleted successfully")
@@ -68,7 +68,7 @@ public class ClassScheduleController {
 
     @GetMapping("/teacher/{teacherId}")
     public ApiResponse<List<ClassScheduleResponse>> getByTeacher(
-            @PathVariable String teacherId,
+            @PathVariable Long teacherId,
             @RequestParam String semester,
             @RequestParam String academicYear) {
         return ApiResponse.<List<ClassScheduleResponse>>builder()
@@ -78,7 +78,7 @@ public class ClassScheduleController {
 
     @GetMapping("/class-group/{classGroupId}")
     public ApiResponse<List<ClassScheduleResponse>> getByClassGroup(
-            @PathVariable String classGroupId,
+            @PathVariable Long classGroupId,
             @RequestParam String semester,
             @RequestParam String academicYear) {
         return ApiResponse.<List<ClassScheduleResponse>>builder()
@@ -86,19 +86,19 @@ public class ClassScheduleController {
                 .build();
     }
 
-    @GetMapping("/course/{courseId}")
-    public ApiResponse<List<ClassScheduleResponse>> getByCourse(
-            @PathVariable String courseId,
+    @GetMapping({"/subject/{subjectId}", "/course/{subjectId}"})
+    public ApiResponse<List<ClassScheduleResponse>> getBySubject(
+            @PathVariable Long subjectId,
             @RequestParam String semester,
             @RequestParam String academicYear) {
         return ApiResponse.<List<ClassScheduleResponse>>builder()
-                .result(classScheduleService.getByCourse(courseId, semester, academicYear))
+                .result(classScheduleService.getBySubject(subjectId, semester, academicYear))
                 .build();
     }
 
     @GetMapping("/student/{studentId}")
     public ApiResponse<List<ClassScheduleResponse>> getByStudent(
-            @PathVariable String studentId,
+            @PathVariable Long studentId,
             @RequestParam String semester,
             @RequestParam String academicYear) {
         return ApiResponse.<List<ClassScheduleResponse>>builder()
@@ -115,6 +115,3 @@ public class ClassScheduleController {
                 .build();
     }
 }
-
-
-

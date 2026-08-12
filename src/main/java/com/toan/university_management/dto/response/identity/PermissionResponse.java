@@ -1,6 +1,5 @@
 package com.toan.university_management.dto.response.identity;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -10,6 +9,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PermissionResponse {
+    String id;
+    String permissionCode;
     String name;
     String description;
     String method;
@@ -17,4 +18,3 @@ public class PermissionResponse {
     String module;
     boolean isPublic;
 }
-

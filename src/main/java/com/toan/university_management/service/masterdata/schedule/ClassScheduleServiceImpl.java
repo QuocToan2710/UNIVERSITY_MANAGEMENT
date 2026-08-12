@@ -2,30 +2,28 @@ package com.toan.university_management.service.masterdata.schedule;
 
 import com.toan.university_management.dto.request.masterdata.ClassScheduleRequest;
 import com.toan.university_management.dto.response.masterdata.ClassScheduleResponse;
-import com.toan.university_management.entity.masterdata.ClassGroup;
 import com.toan.university_management.entity.masterdata.ClassSchedule;
-import com.toan.university_management.entity.masterdata.Course;
+import com.toan.university_management.entity.masterdata.SubjectClass;
 import com.toan.university_management.entity.masterdata.Teacher;
-import com.toan.university_management.entity.masterdata.Student;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;
 import com.toan.university_management.mapper.masterdata.ClassScheduleMapper;
-import com.toan.university_management.repository.masterdata.ClassGroupRepository;
 import com.toan.university_management.repository.masterdata.ClassScheduleRepository;
-import com.toan.university_management.repository.masterdata.CourseRepository;
-import com.toan.university_management.repository.masterdata.StudentRepository;
+import com.toan.university_management.repository.masterdata.SubjectClassRepository;
 import com.toan.university_management.repository.masterdata.TeacherRepository;
-import com.toan.university_management.service.masterdata.schedule.ClassScheduleService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,152 +33,144 @@ import java.util.List;
 public class ClassScheduleServiceImpl implements ClassScheduleService {
 
     ClassScheduleRepository classScheduleRepository;
-    CourseRepository courseRepository;
+    SubjectClassRepository subjectClassRepository;
     TeacherRepository teacherRepository;
-    ClassGroupRepository classGroupRepository;
-    StudentRepository studentRepository;
     ClassScheduleMapper classScheduleMapper;
-
-
-    /** Validate time và kiểm tra conflict, excludeId dùng để loại trừ khi update */
-    private void validateAndCheckConflicts(ClassScheduleRequest request, String excludeId) {
-        if (!request.getEndTime().isAfter(request.getStartTime()))
-            throw new AppException(ErrorCode.SCHEDULE_TIME_INVALID);
-
-        if (classScheduleRepository.existsTeacherConflict(
-                request.getTeacherId(), request.getDayOfWeek(),
-                request.getStartTime(), request.getEndTime(),
-                request.getSemester(), request.getAcademicYear(), excludeId))
-            throw new AppException(ErrorCode.SCHEDULE_TEACHER_CONFLICT);
-
-        if (request.getRoom() != null && !request.getRoom().isBlank() &&
-                classScheduleRepository.existsRoomConflict(
-                        request.getRoom(), request.getDayOfWeek(),
-                        request.getStartTime(), request.getEndTime(),
-                        request.getSemester(), request.getAcademicYear(), excludeId))
-            throw new AppException(ErrorCode.SCHEDULE_ROOM_CONFLICT);
-    }
 
     @Override
     public ClassScheduleResponse createSchedule(ClassScheduleRequest request) {
-        validateAndCheckConflicts(request, "__NONE__");
+        if (!request.getEndTime().isAfter(request.getStartTime()))
+            throw new AppException(ErrorCode.SCHEDULE_TIME_INVALID);
 
-        Course course = courseRepository.findById(request.getCourseId())
-                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new AppException(ErrorCode.TEACHER_NOT_FOUND));
-        ClassGroup classGroup = classGroupRepository.findById(request.getClassGroupId())
-                .orElseThrow(() -> new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND));
+        if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
+            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
+        }
 
         ClassSchedule schedule = classScheduleMapper.toClassSchedule(request);
-        schedule.setCourse(course);
-        schedule.setTeacher(teacher);
-        schedule.setClassGroup(classGroup);
+        if (schedule.getScheduleCode() == null || schedule.getScheduleCode().isBlank()) {
+            schedule.setScheduleCode("SCH_" + System.currentTimeMillis());
+        }
 
-        return classScheduleMapper.toClassScheduleResponse(classScheduleRepository.save(schedule));
+        schedule = classScheduleRepository.save(schedule);
+        return enrichScheduleResponse(schedule);
     }
 
     @Override
-    public ClassScheduleResponse updateSchedule(String id, ClassScheduleRequest request) {
-        ClassSchedule schedule = classScheduleRepository.findById(id)
+    public ClassScheduleResponse updateSchedule(Long id, ClassScheduleRequest request) {
+        ClassSchedule schedule = classScheduleRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-        validateAndCheckConflicts(request, id);
+        if (!request.getEndTime().isAfter(request.getStartTime()))
+            throw new AppException(ErrorCode.SCHEDULE_TIME_INVALID);
 
-        Course course = courseRepository.findById(request.getCourseId())
-                .orElseThrow(() -> new AppException(ErrorCode.COURSE_NOT_FOUND));
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
-                .orElseThrow(() -> new AppException(ErrorCode.TEACHER_NOT_FOUND));
-        ClassGroup classGroup = classGroupRepository.findById(request.getClassGroupId())
-                .orElseThrow(() -> new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND));
+        classScheduleMapper.updateSchedule(schedule, request);
 
-        classScheduleMapper.updateClassSchedule(schedule, request);
-        schedule.setCourse(course);
-        schedule.setTeacher(teacher);
-        schedule.setClassGroup(classGroup);
+        if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
+            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
+        }
 
-        return classScheduleMapper.toClassScheduleResponse(classScheduleRepository.save(schedule));
+        schedule = classScheduleRepository.save(schedule);
+        return enrichScheduleResponse(schedule);
     }
 
     @Override
-    public void deleteSchedule(String id) {
-        if (!classScheduleRepository.existsById(id))
+    public void deleteSchedule(Long id) {
+        if (!classScheduleRepository.existsByIdAndDeletedFalse(id))
             throw new AppException(ErrorCode.SCHEDULE_NOT_FOUND);
         classScheduleRepository.deleteById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ClassScheduleResponse getScheduleById(String id) {
-        return classScheduleMapper.toClassScheduleResponse(
-                classScheduleRepository.findById(id)
-                        .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND)));
+    public ClassScheduleResponse getScheduleById(Long id) {
+        ClassSchedule schedule = classScheduleRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+        return enrichScheduleResponse(schedule);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ClassScheduleResponse> getAllSchedules(Pageable pageable) {
-        return classScheduleRepository.findAll(pageable)
-                .map(classScheduleMapper::toClassScheduleResponse);
+        Page<ClassSchedule> page = classScheduleRepository.findAllByDeletedFalse(pageable);
+        List<ClassScheduleResponse> content = enrichScheduleResponses(page.getContent());
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClassScheduleResponse> getByTeacher(String teacherId, String semester, String academicYear) {
-        return classScheduleMapper.toClassScheduleResponseList(
-                classScheduleRepository.findByTeacherIdAndSemesterAndAcademicYear(teacherId, semester, academicYear));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClassScheduleResponse> getByClassGroup(String classGroupId, String semester, String academicYear) {
-        return classScheduleMapper.toClassScheduleResponseList(
-                classScheduleRepository.findByClassGroupIdAndSemesterAndAcademicYear(classGroupId, semester, academicYear));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClassScheduleResponse> getByCourse(String courseId, String semester, String academicYear) {
-        return classScheduleMapper.toClassScheduleResponseList(
-                classScheduleRepository.findByCourseIdAndSemesterAndAcademicYear(courseId, semester, academicYear));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClassScheduleResponse> getByStudent(String studentId, String semester, String academicYear) {
-        return classScheduleMapper.toClassScheduleResponseList(
-                classScheduleRepository.findByStudentId(studentId, semester, academicYear));
+    public List<ClassScheduleResponse> getAllSchedules() {
+        return enrichScheduleResponses(classScheduleRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getMySchedule(String semester, String academicYear) {
-        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        return enrichScheduleResponses(classScheduleRepository.findAll());
+    }
 
-        // 1. Kiểm tra nếu user là sinh viên
-        var studentOpt = studentRepository.findAll().stream()
-                .filter(s -> username.equalsIgnoreCase(s.getStudentCode()) || username.equalsIgnoreCase(s.getEmail()))
-                .findFirst();
-        if (studentOpt.isPresent() && studentOpt.get().getClassGroup() != null) {
-            return getByClassGroup(studentOpt.get().getClassGroup().getId(), semester, academicYear);
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassScheduleResponse> getByTeacher(Long teacherId, String semester, String academicYear) {
+        return enrichScheduleResponses(classScheduleRepository.findAll());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassScheduleResponse> getByClassGroup(Long classGroupId, String semester, String academicYear) {
+        return enrichScheduleResponses(classScheduleRepository.findAll());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassScheduleResponse> getBySubject(Long subjectId, String semester, String academicYear) {
+        return enrichScheduleResponses(classScheduleRepository.findAll());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassScheduleResponse> getByStudent(Long studentId, String semester, String academicYear) {
+        return enrichScheduleResponses(classScheduleRepository.findAll());
+    }
+
+    private ClassScheduleResponse enrichScheduleResponse(ClassSchedule schedule) {
+        ClassScheduleResponse res = classScheduleMapper.toClassScheduleResponse(schedule);
+        if (schedule.getSubjectClassId() != null) {
+            subjectClassRepository.findByIdAndDeletedFalse(schedule.getSubjectClassId()).ifPresent(cc -> {
+                res.setSubjectClassCode(cc.getSubjectClassCode());
+                res.setSubjectClassName(cc.getName());
+            });
         }
-
-        // 2. Kiểm tra nếu user là giảng viên
-        var teacherOpt = teacherRepository.findAll().stream()
-                .filter(t -> username.equalsIgnoreCase(t.getTeacherCode()) || username.equalsIgnoreCase(t.getEmail()))
-                .findFirst();
-        if (teacherOpt.isPresent()) {
-            return getByTeacher(teacherOpt.get().getId(), semester, academicYear);
+        if (schedule.getTeacherId() != null) {
+            teacherRepository.findByIdAndDeletedFalse(schedule.getTeacherId()).ifPresent(t -> {
+                res.setTeacherCode(t.getTeacherCode());
+                res.setTeacherName(t.getFullName());
+            });
         }
+        return res;
+    }
 
-        // 3. Admin hoặc khác: trả toàn bộ lịch theo học kỳ + năm học
-        return classScheduleRepository.findAll().stream()
-                .filter(s -> (semester == null || semester.isBlank() || semester.equalsIgnoreCase(s.getSemester())) &&
-                             (academicYear == null || academicYear.isBlank() || academicYear.equalsIgnoreCase(s.getAcademicYear())))
-                .map(classScheduleMapper::toClassScheduleResponse)
-                .toList();
+    private List<ClassScheduleResponse> enrichScheduleResponses(List<ClassSchedule> list) {
+        if (list.isEmpty()) return Collections.emptyList();
+
+        Set<Long> scIds = list.stream().map(ClassSchedule::getSubjectClassId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> teacherIds = list.stream().map(ClassSchedule::getTeacherId).filter(Objects::nonNull).collect(Collectors.toSet());
+
+        Map<Long, SubjectClass> scMap = subjectClassRepository.findAllByIdInAndDeletedFalse(scIds).stream().collect(Collectors.toMap(SubjectClass::getId, Function.identity()));
+        Map<Long, Teacher> teacherMap = teacherRepository.findAllByIdInAndDeletedFalse(teacherIds).stream().collect(Collectors.toMap(Teacher::getId, Function.identity()));
+
+        return list.stream().map(s -> {
+            ClassScheduleResponse res = classScheduleMapper.toClassScheduleResponse(s);
+            if (s.getSubjectClassId() != null && scMap.containsKey(s.getSubjectClassId())) {
+                SubjectClass sc = scMap.get(s.getSubjectClassId());
+                res.setSubjectClassCode(sc.getSubjectClassCode());
+                res.setSubjectClassName(sc.getName());
+            }
+            if (s.getTeacherId() != null && teacherMap.containsKey(s.getTeacherId())) {
+                Teacher t = teacherMap.get(s.getTeacherId());
+                res.setTeacherCode(t.getTeacherCode());
+                res.setTeacherName(t.getFullName());
+            }
+            return res;
+        }).toList();
     }
 }
-
-
-

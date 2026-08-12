@@ -1,7 +1,5 @@
 package com.toan.university_management.dto.request.masterdata;
 
-
-import jakarta.persistence.Entity;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -11,14 +9,12 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TeacherRequest {
-    String id;
+    Long id;
     String teacherCode;
     String fullName;
     String email;
     String phoneNumber;
-    String specialization;
     String degree;
-    String department;
-
+    Long departmentId;
+    String userId;
 }
-

@@ -1,24 +1,18 @@
 package com.toan.university_management.dto.request.masterdata;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ClassGroupRequest {
-
-    @NotBlank(message = "Class code is required")
+    Long id;
     String classCode;
-
-    @NotBlank(message = "Class name is required")
     String className;
-
-    String major;
+    Long majorId;
     String academicYear;
-    String homeroomTeacherId;   // Giáo viên chủ nhiệm (optional)
+    Long homeroomTeacherId;
 }
-

@@ -1,6 +1,5 @@
 package com.toan.university_management.dto.response.identity;
 
-import com.toan.university_management.entity.identity.Permission;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,9 +11,9 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RoleResponse {
+    String id;
+    String roleCode;
     String name;
     String description;
-    Set<String> permissions;
+    Set<PermissionResponse> permissions;
 }
-
-

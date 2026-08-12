@@ -2,19 +2,35 @@ package com.toan.university_management.entity.identity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
+@Table(name = "permission", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_permission_code", columnNames = {"permission_code"})
+})
 public class Permission {
+
     @Id
-    @Column(name = "name")
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
+    String id;
+
+    @Column(name = "permission_code", nullable = false)
+    String permissionCode;
+
+    @Column(name = "name", nullable = false)
     String name;
 
     @Column(name = "description")
@@ -33,4 +49,3 @@ public class Permission {
     @Column(name = "is_public", nullable = false)
     boolean isPublic = false;
 }
-

@@ -1,17 +1,20 @@
 package com.toan.university_management.controller.masterdata;
 
-
 import com.toan.university_management.dto.request.masterdata.StudentRequest;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.StudentResponse;
 import com.toan.university_management.service.masterdata.student.StudentService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
@@ -23,8 +26,8 @@ public class StudentController {
     StudentService studentService;
 
     @PostMapping
-    ApiResponse<StudentResponse> createStudent(@Valid @RequestBody StudentRequest request){
-
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<StudentResponse> createStudent(@Valid @RequestBody StudentRequest request) {
         return ApiResponse.<StudentResponse>builder()
                 .message("Successfully created student")
                 .result(studentService.createStudent(request))
@@ -32,9 +35,9 @@ public class StudentController {
     }
 
     @GetMapping
-    ApiResponse<org.springframework.data.domain.Page<StudentResponse>> getAllStudents(
-            @org.springframework.data.web.PageableDefault(page = 0, size = 10, sort = "id") org.springframework.data.domain.Pageable pageable) {
-        return ApiResponse.<org.springframework.data.domain.Page<StudentResponse>>builder()
+    ApiResponse<Page<StudentResponse>> getAllStudents(
+            @PageableDefault(page = 0, size = 10, sort = "id") Pageable pageable) {
+        return ApiResponse.<Page<StudentResponse>>builder()
                 .result(studentService.getAllStudents(pageable))
                 .build();
     }
@@ -46,29 +49,25 @@ public class StudentController {
                 .build();
     }
 
-
     @GetMapping("/{id}")
-    ApiResponse<StudentResponse> getStudentById(@PathVariable String id) {
+    ApiResponse<StudentResponse> getStudentById(@PathVariable Long id) {
         return ApiResponse.<StudentResponse>builder()
                 .result(studentService.getStudentById(id))
                 .build();
     }
 
     @PutMapping("/{id}")
-    ApiResponse<StudentResponse> updateStudent(
-            @PathVariable String id,
-            @Valid @RequestBody StudentRequest request
-    ) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<StudentResponse> updateStudent(@PathVariable Long id, @Valid @RequestBody StudentRequest request) {
         return ApiResponse.<StudentResponse>builder()
                 .result(studentService.updateStudent(id, request))
                 .build();
     }
 
     @DeleteMapping("/{id}")
-    ApiResponse<String> deleteStudent(@PathVariable String id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<String> deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
         return ApiResponse.<String>builder().result("Student has been deleted successfully").build();
     }
 }
-
-

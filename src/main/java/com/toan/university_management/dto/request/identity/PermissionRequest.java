@@ -1,6 +1,5 @@
 package com.toan.university_management.dto.request.identity;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -10,7 +9,12 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PermissionRequest {
+    String id;
+    String permissionCode;
     String name;
     String description;
+    String method;
+    String endpoint;
+    String module;
+    boolean isPublic;
 }
-

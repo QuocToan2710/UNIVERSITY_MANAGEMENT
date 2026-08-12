@@ -2,40 +2,35 @@ logging:
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
-    web: DEBUG
+    web: INFO
     org.springframework.web.socket.messaging: WARN
     org.springframework.boot.web.embedded.tomcat: INFO
     org.springframework.boot.web.context: INFO
+    org.springframework.data.repository.config: WARN
+    org.hibernate.tool.schema: ERROR
     org.apache.kafka: ERROR
-    #    org.springframework.cache: DEBUG
-    #    org.springframework.cache.interceptor: TRACE
-    #    org.springframework.security: DEBUG
-    #    org.springframework.security.web: DEBUG
-    #    org.postgresql: DEBUG
-    #    org.hibernate.SQL: DEBUG
-    #    org.hibernate.type.descriptor.sql: DEBUG
-    #    org.hibernate.orm.jdbc.bind: trace
-    com.zaxxer.hikari: DEBUG
-  #    org.springframework.messaging: WARN
+    com.zaxxer.hikari: INFO
 
 spring:
   application:
     name: university-management
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/university}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/university?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&sessionVariables=FOREIGN_KEY_CHECKS=0}
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
 
   jpa:
-    show-sql: true
+    open-in-view: false
+    show-sql: false
     generate-ddl: true
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
 
   data:
     redis:

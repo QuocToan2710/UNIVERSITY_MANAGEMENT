@@ -1,5 +1,6 @@
 package com.toan.university_management.configuration;
 
+import com.toan.university_management.entity.identity.Permission;
 import com.toan.university_management.repository.identity.PermissionRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +14,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -69,8 +72,8 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             return new AuthorizationDecision(false);
         }
 
-        // Allow any authenticated user to fetch their own profile
-        if ("GET".equalsIgnoreCase(method) && antPathMatcher.match("/users/myInfo", path)) {
+        // Allow any authenticated user to perform GET requests on read-only endpoints
+        if ("GET".equalsIgnoreCase(method)) {
             return new AuthorizationDecision(true);
         }
 
@@ -78,24 +81,24 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
 
         // 3. Admin wildcard override
         for (GrantedAuthority authority : authorities) {
-            if ("ROLE_ADMIN".equals(authority.getAuthority())) {
+            String authStr = authority.getAuthority();
+            if (authStr != null && ("ROLE_ADMIN".equalsIgnoreCase(authStr) || "ADMIN".equalsIgnoreCase(authStr))) {
                 return new AuthorizationDecision(true);
             }
         }
 
-        // 4. Check dynamic API permission matching (AntPathMatcher)
-        for (GrantedAuthority authority : authorities) {
-            String permName = authority.getAuthority();
-            if (permName == null || !permName.contains("_/")) {
-                continue;
-            }
+        // 4. Dynamic API permission matching against user's authorities (roleCodes & permissionCodes)
+        Set<String> userAuthCodes = authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
 
-            int underscoreIdx = permName.indexOf('_');
-            String permMethod = permName.substring(0, underscoreIdx);
-            String permPattern = permName.substring(underscoreIdx + 1);
-
-            if (permMethod.equalsIgnoreCase(method) && antPathMatcher.match(permPattern, path)) {
-                return new AuthorizationDecision(true);
+        List<Permission> allPerms = permissionRepository.findAll();
+        for (Permission perm : allPerms) {
+            if (userAuthCodes.contains(perm.getPermissionCode()) || userAuthCodes.contains(perm.getName())) {
+                if (perm.getMethod() != null && perm.getMethod().equalsIgnoreCase(method)
+                        && perm.getEndpoint() != null && antPathMatcher.match(perm.getEndpoint(), path)) {
+                    return new AuthorizationDecision(true);
+                }
             }
         }
 
@@ -103,4 +106,3 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
         return new AuthorizationDecision(false);
     }
 }
-

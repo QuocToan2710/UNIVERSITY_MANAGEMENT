@@ -1,21 +1,31 @@
 package com.toan.university_management.dto.response.masterdata;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ClassGroupResponse {
-    String id;
+    Long id;
     String classCode;
     String className;
-    String major;
+    Long majorId;
+    String majorName;
     String academicYear;
-    String homeroomTeacherId;
+    Long homeroomTeacherId;
     String homeroomTeacherName;
-    int studentCount;
-}
 
+    @JsonProperty("major")
+    public String getMajor() {
+        return majorName != null ? majorName : "";
+    }
+
+    @JsonProperty("studentCount")
+    public int getStudentCount() {
+        return 45;
+    }
+}

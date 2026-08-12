@@ -9,16 +9,14 @@ import java.util.List;
 
 public interface ClassScheduleService {
     ClassScheduleResponse createSchedule(ClassScheduleRequest request);
-    ClassScheduleResponse updateSchedule(String id, ClassScheduleRequest request);
-    void deleteSchedule(String id);
-    ClassScheduleResponse getScheduleById(String id);
+    ClassScheduleResponse updateSchedule(Long id, ClassScheduleRequest request);
+    void deleteSchedule(Long id);
+    ClassScheduleResponse getScheduleById(Long id);
     Page<ClassScheduleResponse> getAllSchedules(Pageable pageable);
-    List<ClassScheduleResponse> getByTeacher(String teacherId, String semester, String academicYear);
-    List<ClassScheduleResponse> getByClassGroup(String classGroupId, String semester, String academicYear);
-    List<ClassScheduleResponse> getByCourse(String courseId, String semester, String academicYear);
-    List<ClassScheduleResponse> getByStudent(String studentId, String semester, String academicYear);
+    List<ClassScheduleResponse> getAllSchedules();
     List<ClassScheduleResponse> getMySchedule(String semester, String academicYear);
+    List<ClassScheduleResponse> getByTeacher(Long teacherId, String semester, String academicYear);
+    List<ClassScheduleResponse> getByClassGroup(Long classGroupId, String semester, String academicYear);
+    List<ClassScheduleResponse> getBySubject(Long subjectId, String semester, String academicYear);
+    List<ClassScheduleResponse> getByStudent(Long studentId, String semester, String academicYear);
 }
-
-
-

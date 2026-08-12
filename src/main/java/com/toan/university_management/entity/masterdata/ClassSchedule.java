@@ -9,33 +9,42 @@ import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalTime;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "class_schedule")
+@Table(name = "class_schedule", 
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_schedule_code_deleted", columnNames = {"schedule_code", "deleted"})
+    },
+    indexes = {
+        @Index(name = "idx_schedule_subject_class", columnList = "subject_class_id"),
+        @Index(name = "idx_schedule_teacher", columnList = "teacher_id")
+    }
+)
 @SQLDelete(sql = "UPDATE class_schedule SET deleted = true WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class ClassSchedule {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    String id;
+    Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    Course course;
+    @Column(name = "schedule_code", nullable = false)
+    String scheduleCode;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id", nullable = false)
-    Teacher teacher;
+    @Column(name = "name")
+    String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_group_id", nullable = false)
-    ClassGroup classGroup;
+    @Column(name = "subject_class_id", nullable = false)
+    Long subjectClassId;
+
+    @Column(name = "teacher_id")
+    Long teacherId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false)
@@ -51,10 +60,10 @@ public class ClassSchedule {
     String room;
 
     @Column(name = "semester")
-    String semester;                // VD: HK1, HK2
+    String semester;
 
     @Column(name = "academic_year")
-    String academicYear;            // VD: 2025-2026
+    String academicYear;
 
     @Column(name = "note", columnDefinition = "TEXT")
     String note;
@@ -63,4 +72,3 @@ public class ClassSchedule {
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
 }
-

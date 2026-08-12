@@ -1,0 +1,48 @@
+package com.toan.university_management.entity.masterdata;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Entity
+@Table(name = "building",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_building_code_deleted", columnNames = {"building_code", "deleted"})
+    }
+)
+@SQLDelete(sql = "UPDATE building SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
+public class Building {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    Long id;
+
+    @Column(name = "building_code", nullable = false)
+    String buildingCode;
+
+    @Column(name = "name", nullable = false)
+    String name;
+
+    @Column(name = "total_floors")
+    Integer totalFloors;
+
+    @Column(name = "status", nullable = false)
+    String status; // ACTIVE, MAINTENANCE, INACTIVE
+
+    @Column(name = "description")
+    String description;
+
+    @Builder.Default
+    @Column(name = "deleted", nullable = false)
+    boolean deleted = false;
+}

@@ -1,6 +1,7 @@
 package com.toan.university_management.configuration;
 
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 @Component
 public class CustomJwtDecoder implements JwtDecoder {
 
@@ -36,7 +38,11 @@ public class CustomJwtDecoder implements JwtDecoder {
 
     @Override
     public Jwt decode(String token) throws JwtException {
-        return nimbusJwtDecoder.decode(token);
+        try {
+            return nimbusJwtDecoder.decode(token);
+        } catch (Exception e) {
+            log.error("JWT Decode Failure: {}", e.getMessage());
+            throw new JwtException("Invalid token: " + e.getMessage(), e);
+        }
     }
 }
-

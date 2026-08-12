@@ -1,17 +1,13 @@
 package com.toan.university_management.entity.identity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDate;
-import java.util.Set;
-
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -23,15 +19,19 @@ import java.util.Set;
 @SQLDelete(sql = "UPDATE user SET deleted = true WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")
     String id;
 
-    @Column(name = "username")
+    @Column(name = "user_code")
+    String userCode;
+
+    @Column(name = "username", nullable = false)
     String username;
 
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     String password;
 
     @Column(name = "email")
@@ -43,8 +43,4 @@ public class User {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
-
-    @ManyToMany(fetch = jakarta.persistence.FetchType.EAGER)
-    Set<Role> roles;
 }
-

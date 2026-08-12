@@ -52,7 +52,7 @@ public class UserController {
     }
 
     @PutMapping("update")
-    ApiResponse<UserResponse> updateUser(@RequestBody @Valid UserRequest request) {
+    ApiResponse<UserResponse> updateUser(@RequestBody UserRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUser(request))
                 .build();

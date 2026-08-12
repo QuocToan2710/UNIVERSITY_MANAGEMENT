@@ -1,17 +1,20 @@
 package com.toan.university_management.controller.masterdata;
 
-
 import com.toan.university_management.dto.request.masterdata.TeacherRequest;
 import com.toan.university_management.dto.response.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.TeacherResponse;
 import com.toan.university_management.service.masterdata.teacher.TeacherService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
@@ -23,23 +26,18 @@ public class TeacherController {
     TeacherService teacherService;
 
     @PostMapping
-    ApiResponse<TeacherResponse>  createTeacher(@RequestBody @Valid TeacherRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<TeacherResponse> createTeacher(@Valid @RequestBody TeacherRequest request) {
         return ApiResponse.<TeacherResponse>builder()
+                .message("Successfully created teacher")
                 .result(teacherService.createTeacher(request))
                 .build();
     }
 
-    @GetMapping("/{id}")
-    ApiResponse<TeacherResponse>  getTeacherById(@PathVariable String id) {
-        return ApiResponse.<TeacherResponse>builder()
-                .result(teacherService.getTeacherById(id))
-                .build();
-    }
-
     @GetMapping
-    ApiResponse<org.springframework.data.domain.Page<TeacherResponse>> getAllTeachers(
-            @org.springframework.data.web.PageableDefault(page = 0, size = 10, sort = "id") org.springframework.data.domain.Pageable pageable) {
-        return ApiResponse.<org.springframework.data.domain.Page<TeacherResponse>>builder()
+    ApiResponse<Page<TeacherResponse>> getAllTeachers(
+            @PageableDefault(page = 0, size = 10, sort = "id") Pageable pageable) {
+        return ApiResponse.<Page<TeacherResponse>>builder()
                 .result(teacherService.getAllTeachers(pageable))
                 .build();
     }
@@ -51,28 +49,25 @@ public class TeacherController {
                 .build();
     }
 
+    @GetMapping("/{id}")
+    ApiResponse<TeacherResponse> getTeacherById(@PathVariable Long id) {
+        return ApiResponse.<TeacherResponse>builder()
+                .result(teacherService.getTeacherById(id))
+                .build();
+    }
 
     @PutMapping("/{id}")
-    ApiResponse<TeacherResponse>  updateTeacher(@PathVariable String id,
-                                         @RequestBody @Valid TeacherRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<TeacherResponse> updateTeacher(@PathVariable Long id, @Valid @RequestBody TeacherRequest request) {
         return ApiResponse.<TeacherResponse>builder()
                 .result(teacherService.updateTeacher(id, request))
                 .build();
     }
 
     @DeleteMapping("/{id}")
-    ApiResponse<String> deleteTeacher(@PathVariable String id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    ApiResponse<String> deleteTeacher(@PathVariable Long id) {
         teacherService.deleteTeacher(id);
         return ApiResponse.<String>builder().result("Teacher has been deleted successfully").build();
     }
-
-    @GetMapping("/by-specialization")
-    public ApiResponse<List<TeacherResponse>> getTeachersBySpecialization(@RequestParam String specialization) {
-        return ApiResponse.<List<TeacherResponse>>builder()
-                .result(teacherService.getTeachersBySpecialization(specialization))
-                .build();
-    }
-
 }
-
-

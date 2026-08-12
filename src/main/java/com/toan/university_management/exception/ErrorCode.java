@@ -1,6 +1,5 @@
 package com.toan.university_management.exception;
 
-
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -25,14 +24,19 @@ public enum ErrorCode {
     STUDENT_NOT_FOUND(1014, "Student not found", HttpStatus.NOT_FOUND),
     TEACHER_NOT_FOUND(1015, "Teacher not found", HttpStatus.NOT_FOUND),
     COURSE_NOT_FOUND(1016, "Course not found", HttpStatus.NOT_FOUND),
+    COURSE_EXISTED(1017, "Course/Subject already exists", HttpStatus.BAD_REQUEST),
     CLASS_GROUP_NOT_FOUND(2001, "Class group not found", HttpStatus.NOT_FOUND),
     CLASS_GROUP_EXISTED(2002, "Class group with this code already exists", HttpStatus.BAD_REQUEST),
     SCHEDULE_NOT_FOUND(2003, "Schedule not found", HttpStatus.NOT_FOUND),
     SCHEDULE_TEACHER_CONFLICT(2004, "Teacher already has a class scheduled at this time", HttpStatus.CONFLICT),
     SCHEDULE_ROOM_CONFLICT(2005, "Room is already occupied at this time", HttpStatus.CONFLICT),
-    SCHEDULE_TIME_INVALID(2006, "End time must be after start time", HttpStatus.BAD_REQUEST)
+    SCHEDULE_TIME_INVALID(2006, "End time must be after start time", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_NOT_FOUND(2007, "Department not found", HttpStatus.NOT_FOUND),
+    MAJOR_NOT_FOUND(2008, "Major not found", HttpStatus.NOT_FOUND),
+    BUILDING_NOT_FOUND(2009, "Building not found", HttpStatus.NOT_FOUND),
+    ROOM_NOT_FOUND(2010, "Room not found", HttpStatus.NOT_FOUND),
+    SUBJECT_NOT_FOUND(2011, "Subject not found", HttpStatus.NOT_FOUND)
     ;
-
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

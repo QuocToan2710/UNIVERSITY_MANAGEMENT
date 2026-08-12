@@ -1,21 +1,21 @@
 package com.toan.university_management;
 
-import com.toan.university_management.dto.response.CourseResponse;
-import com.toan.university_management.dto.response.StudentResponse;
-import com.toan.university_management.dto.response.TeacherResponse;
-import com.toan.university_management.dto.response.UserResponse;
-import com.toan.university_management.entity.Course;
-import com.toan.university_management.entity.Student;
-import com.toan.university_management.entity.Teacher;
-import com.toan.university_management.entity.User;
-import com.toan.university_management.repository.CourseRepository;
-import com.toan.university_management.repository.StudentRepository;
-import com.toan.university_management.repository.TeacherRepository;
-import com.toan.university_management.repository.UserRepository;
-import com.toan.university_management.service.CourseService;
-import com.toan.university_management.service.StudentService;
-import com.toan.university_management.service.TeacherService;
-import com.toan.university_management.service.UserService;
+import com.toan.university_management.dto.response.identity.UserResponse;
+import com.toan.university_management.dto.response.masterdata.StudentResponse;
+import com.toan.university_management.dto.response.masterdata.SubjectResponse;
+import com.toan.university_management.dto.response.masterdata.TeacherResponse;
+import com.toan.university_management.entity.identity.User;
+import com.toan.university_management.entity.masterdata.Student;
+import com.toan.university_management.entity.masterdata.Subject;
+import com.toan.university_management.entity.masterdata.Teacher;
+import com.toan.university_management.repository.identity.UserRepository;
+import com.toan.university_management.repository.masterdata.StudentRepository;
+import com.toan.university_management.repository.masterdata.SubjectRepository;
+import com.toan.university_management.repository.masterdata.TeacherRepository;
+import com.toan.university_management.service.identity.UserService;
+import com.toan.university_management.service.masterdata.student.StudentService;
+import com.toan.university_management.service.masterdata.subject.SubjectService;
+import com.toan.university_management.service.masterdata.teacher.TeacherService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ class PaginationAndEntityGraphTest {
     private TeacherService teacherService;
 
     @Autowired
-    private CourseService courseService;
+    private SubjectService subjectService;
 
     @Autowired
     private UserService userService;
@@ -52,23 +52,22 @@ class PaginationAndEntityGraphTest {
     private TeacherRepository teacherRepository;
 
     @Autowired
-    private CourseRepository courseRepository;
+    private SubjectRepository subjectRepository;
 
     @Autowired
     private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
-        studentRepository.deleteAll();
-        courseRepository.deleteAll();
-        teacherRepository.deleteAll();
-        userRepository.deleteAll();
+        studentRepository.deleteAllInBatch();
+        subjectRepository.deleteAllInBatch();
+        teacherRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
     }
 
     @Test
-    @DisplayName("Test Student Pagination and EntityGraph")
+    @DisplayName("Test Student Pagination")
     void testStudentPagination() {
-        // Seed 3 students
         for (int i = 1; i <= 3; i++) {
             studentRepository.save(Student.builder()
                     .studentCode("SV00" + i)
@@ -89,15 +88,14 @@ class PaginationAndEntityGraphTest {
     }
 
     @Test
-    @DisplayName("Test Teacher Pagination and EntityGraph")
+    @DisplayName("Test Teacher Pagination")
     void testTeacherPagination() {
-        // Seed 3 teachers
         for (int i = 1; i <= 3; i++) {
             teacherRepository.save(Teacher.builder()
                     .teacherCode("GV00" + i)
                     .fullName("Teacher " + i)
                     .email("teacher" + i + "@gmail.com")
-                    .specialization("CNTT")
+                    .degree("Thạc sĩ")
                     .build());
         }
 
@@ -112,34 +110,32 @@ class PaginationAndEntityGraphTest {
     }
 
     @Test
-    @DisplayName("Test Course Pagination and EntityGraph")
-    void testCoursePagination() {
-        // Seed 3 courses
+    @DisplayName("Test Subject Pagination")
+    void testSubjectPagination() {
         for (int i = 1; i <= 3; i++) {
-            courseRepository.save(Course.builder()
-                    .courseCode("CS10" + i)
-                    .courseName("Course " + i)
+            subjectRepository.save(Subject.builder()
+                    .subjectCode("CS10" + i)
+                    .name("Subject " + i)
                     .credit(3)
-                    .semester("2026.1")
                     .build());
         }
 
-        Pageable pageable = PageRequest.of(0, 2, Sort.by("courseCode").ascending());
-        Page<CourseResponse> page = courseService.getAllCourses(pageable);
+        Pageable pageable = PageRequest.of(0, 2, Sort.by("subjectCode").ascending());
+        Page<SubjectResponse> page = subjectService.getAllSubjects(pageable);
 
         assertNotNull(page);
         assertEquals(3, page.getTotalElements());
         assertEquals(2, page.getTotalPages());
         assertEquals(2, page.getContent().size());
-        assertEquals("CS101", page.getContent().get(0).getCourseCode());
+        assertEquals("CS101", page.getContent().get(0).getSubjectCode());
     }
 
     @Test
-    @DisplayName("Test User Pagination and EntityGraph")
+    @DisplayName("Test User Pagination")
     void testUserPagination() {
-        // Seed 3 users
         for (int i = 1; i <= 3; i++) {
             userRepository.save(User.builder()
+                    .userCode("USR_TEST_" + i)
                     .username("user_test_" + i)
                     .password("password" + i)
                     .email("user" + i + "@gmail.com")

@@ -3,7 +3,9 @@ package com.toan.university_management.configuration;
 import com.toan.university_management.annotation.PermissionMeta;
 import com.toan.university_management.entity.identity.Permission;
 import com.toan.university_management.entity.identity.Role;
+import com.toan.university_management.entity.identity.RolePermission;
 import com.toan.university_management.repository.identity.PermissionRepository;
+import com.toan.university_management.repository.identity.RolePermissionRepository;
 import com.toan.university_management.repository.identity.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ public class EndpointAutoScanner implements ApplicationRunner {
     private final RequestMappingHandlerMapping handlerMapping;
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
     @Override
     @Transactional
@@ -41,7 +44,6 @@ public class EndpointAutoScanner implements ApplicationRunner {
             RequestMappingInfo mappingInfo = entry.getKey();
             HandlerMethod handlerMethod = entry.getValue();
 
-            // Skip Spring built-in error / actuator endpoints
             String controllerClassName = handlerMethod.getBeanType().getName();
             if (controllerClassName.startsWith("org.springframework")) {
                 continue;
@@ -67,15 +69,17 @@ public class EndpointAutoScanner implements ApplicationRunner {
 
             for (RequestMethod method : methods) {
                 for (String pattern : patterns) {
-                    String permissionName = method.name() + "_" + pattern;
+                    String permissionCode = "PERM_" + method.name() + "_" + pattern.replace("/", "_").replace("*", "");
+                    String permissionName = method.name() + " " + pattern;
 
-                    Optional<Permission> existingOpt = permissionRepository.findById(permissionName);
+                    Optional<Permission> existingOpt = permissionRepository.findByPermissionCode(permissionCode);
                     String description = (meta != null && (!meta.value().isBlank() || !meta.description().isBlank()))
                             ? (!meta.value().isBlank() ? meta.value() : meta.description())
                             : generateDescription(method.name(), pattern, moduleName);
 
                     if (existingOpt.isEmpty()) {
                         Permission permission = Permission.builder()
+                                .permissionCode(permissionCode)
                                 .name(permissionName)
                                 .method(method.name())
                                 .endpoint(pattern)
@@ -109,18 +113,21 @@ public class EndpointAutoScanner implements ApplicationRunner {
 
         // Auto-assign non-public permissions to ADMIN role
         if (!newlyCreatedPermissions.isEmpty()) {
-            roleRepository.findByName("ADMIN").ifPresent(adminRole -> {
-                if (adminRole.getPermissions() == null) {
-                    adminRole.setPermissions(new HashSet<>());
-                }
+            Role adminRole = roleRepository.findByRoleCode("ROLE_ADMIN")
+                    .or(() -> roleRepository.findByName("ADMIN"))
+                    .orElse(null);
+
+            if (adminRole != null) {
                 for (Permission perm : newlyCreatedPermissions) {
                     if (!perm.isPublic()) {
-                        adminRole.getPermissions().add(perm);
+                        rolePermissionRepository.save(RolePermission.builder()
+                                .roleCode(adminRole.getRoleCode())
+                                .permissionCode(perm.getPermissionCode())
+                                .build());
                     }
                 }
-                roleRepository.save(adminRole);
                 log.info("Auto-synced {} new API permissions to ADMIN role.", newlyCreatedPermissions.size());
-            });
+            }
         }
 
         log.info("Endpoint Auto-Scan completed successfully.");
@@ -159,4 +166,3 @@ public class EndpointAutoScanner implements ApplicationRunner {
         return action + " " + module + " (" + pattern + ")";
     }
 }
-
