@@ -7,6 +7,9 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
+import com.toan.university_management.dto.request.masterdata.BuildingSearchPaginationRQ;
+import com.toan.university_management.dto.response.BasePaginationRS;
+
 public interface BuildingService {
     BuildingResponse createBuilding(BuildingRequest request);
     BuildingResponse getBuildingById(Long id);
@@ -14,4 +17,6 @@ public interface BuildingService {
     Page<BuildingResponse> getAllBuildings(Pageable pageable);
     BuildingResponse updateBuilding(Long id, BuildingRequest request);
     void deleteBuilding(Long id);
+    BasePaginationRS<BuildingResponse> search(BuildingSearchPaginationRQ search);
+    List<BuildingResponse> export(BuildingSearchPaginationRQ search);
 }

@@ -3,6 +3,7 @@ package com.toan.university_management.service.reports;
 import com.toan.university_management.dto.reports.StudentReportDTO;
 import com.toan.university_management.repository.masterdata.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
@@ -18,12 +19,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudentReportServiceImpl implements StudentReportService {
 
     private final StudentRepository studentRepository;
+    private final Map<String, JasperReport> reportCache = new ConcurrentHashMap<>();
 
     @Override
     public byte[] exportStudentReport() throws Exception {
@@ -35,9 +39,7 @@ public class StudentReportServiceImpl implements StudentReportService {
     public byte[] exportStudentReport(String format) throws Exception {
         List<StudentReportDTO> students = studentRepository.getAllStudentForReport();
 
-        InputStream template = new ClassPathResource("reports/information_student.jrxml").getInputStream();
-
-        JasperReport jasperReport = JasperCompileManager.compileReport(template);
+        JasperReport jasperReport = getCompiledReport("reports/information_student.jrxml");
 
         JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(students);
 
@@ -55,6 +57,18 @@ public class StudentReportServiceImpl implements StudentReportService {
         } else {
             return JasperExportManager.exportReportToPdf(jasperPrint);
         }
+    }
+
+    private JasperReport getCompiledReport(String path) {
+        return reportCache.computeIfAbsent(path, reportPath -> {
+            try (InputStream template = new ClassPathResource(reportPath).getInputStream()) {
+                log.info("Compiling JasperReport template once: {}", reportPath);
+                return JasperCompileManager.compileReport(template);
+            } catch (Exception e) {
+                log.error("Error compiling JasperReport template: {}", reportPath, e);
+                throw new IllegalStateException("Failed to compile JasperReport template: " + reportPath, e);
+            }
+        });
     }
 
     // Method private để export Excel

@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class ClassScheduleController {
     ClassScheduleService classScheduleService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ApiResponse<ClassScheduleResponse> create(@Valid @RequestBody ClassScheduleRequest request) {
         return ApiResponse.<ClassScheduleResponse>builder()
                 .message("Schedule created successfully")
@@ -49,6 +51,7 @@ public class ClassScheduleController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ApiResponse<ClassScheduleResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody ClassScheduleRequest request) {
@@ -59,6 +62,7 @@ public class ClassScheduleController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ApiResponse<String> delete(@PathVariable Long id) {
         classScheduleService.deleteSchedule(id);
         return ApiResponse.<String>builder()

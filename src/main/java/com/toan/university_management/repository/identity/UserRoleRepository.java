@@ -6,14 +6,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Collection;
 import java.util.List;
 
-public interface UserRoleRepository extends JpaRepository<UserRole, String> {
+public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
     List<UserRole> findByUserId(String userId);
 
     List<UserRole> findByUserIdIn(Collection<String> userIds);
 
-    boolean existsByUserIdAndRoleCode(String userId, String roleCode);
+    List<UserRole> findByRoleId(Long roleId);
+
+    boolean existsByUserIdAndRoleId(String userId, Long roleId);
 
     void deleteByUserId(String userId);
 
-    void deleteByUserIdAndRoleCode(String userId, String roleCode);
+    void deleteByRoleId(Long roleId);
+
+    void deleteByUserIdAndRoleId(String userId, Long roleId);
 }

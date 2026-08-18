@@ -1,7 +1,9 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.BuildingRequest;
+import com.toan.university_management.dto.request.masterdata.BuildingSearchPaginationRQ;
 import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.dto.response.BasePaginationRS;
 import com.toan.university_management.dto.response.masterdata.BuildingResponse;
 import com.toan.university_management.service.masterdata.building.BuildingService;
 import jakarta.validation.Valid;
@@ -61,6 +63,20 @@ public class BuildingController {
     ApiResponse<BuildingResponse> updateBuilding(@PathVariable Long id, @Valid @RequestBody BuildingRequest request) {
         return ApiResponse.<BuildingResponse>builder()
                 .result(buildingService.updateBuilding(id, request))
+                .build();
+    }
+
+    @PostMapping("/search")
+    ApiResponse<BasePaginationRS<BuildingResponse>> searchBuildings(@RequestBody(required = false) BuildingSearchPaginationRQ request) {
+        return ApiResponse.<BasePaginationRS<BuildingResponse>>builder()
+                .result(buildingService.search(request))
+                .build();
+    }
+
+    @PostMapping("/export")
+    ApiResponse<List<BuildingResponse>> exportBuildings(@RequestBody(required = false) BuildingSearchPaginationRQ request) {
+        return ApiResponse.<List<BuildingResponse>>builder()
+                .result(buildingService.export(request))
                 .build();
     }
 

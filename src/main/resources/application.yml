@@ -1,3 +1,7 @@
+server:
+  port: 8080
+  max-http-request-header-size: 65536
+
 logging:
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

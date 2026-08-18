@@ -6,10 +6,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Collection;
 import java.util.List;
 
-public interface RolePermissionRepository extends JpaRepository<RolePermission, String> {
-    List<RolePermission> findByRoleCode(String roleCode);
+public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {
+    List<RolePermission> findByRoleId(Long roleId);
 
-    List<RolePermission> findByRoleCodeIn(Collection<String> roleCodes);
+    List<RolePermission> findByRoleIdIn(Collection<Long> roleIds);
 
-    void deleteByRoleCode(String roleCode);
+    List<RolePermission> findByPermissionId(Long permissionId);
+
+    void deleteByRoleId(Long roleId);
+
+    void deleteByPermissionId(Long permissionId);
+
+    void deleteByRoleIdAndPermissionId(Long roleId, Long permissionId);
 }

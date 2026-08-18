@@ -1,11 +1,11 @@
 # CONTEXT.md — Ngữ cảnh hiện tại dự án
 
 > **Loại**: Tài liệu sống — cập nhật cuối mỗi phiên làm việc hoặc khi hoàn thành plan.  
-> **Cập nhật lần cuối**: 2026-08-12 17:40
+> **Cập nhật lần cuối**: 2026-08-17 17:38
 
 ---
 
-## Trạng thái tổng thể: 🟢 Backend & Frontend BUILD SUCCESS 100% — Refactor Subject/SubjectClass & Numeric ID Migration hoàn tất
+## Trạng thái tổng thể: 🟢 Backend & Frontend BUILD SUCCESS 100% — Masterdata Seeded, Timetable Matrix, 4K Glassmorphism Login & Dark/Light Theme System Hoàn tất
 
 ## Tính năng đã hoàn thành ✅
 
@@ -18,11 +18,16 @@
 | Numeric ID Migration | ✅ Done    | 13 Masterdata entities chuyển từ `String UUID` sang `Long` + `GenerationType.IDENTITY` (BIGINT AUTO_INCREMENT) |
 | Subject & SubjectClass Refactor | ✅ Done | Chuyển đổi toàn bộ `Course`/`CourseClass` sang `Subject` (Môn học) & `SubjectClass` (Lớp học phần), hỗ trợ backward-compatible JsonAlias |
 | Auto DB Cleanup      | ✅ Done    | `cleanDatabase()` trong `UniversityManagementApplication.java`: tự xóa legacy VARCHAR PK tables + orphan tables |
+| Security Hardening   | ✅ Done    | Khóa lỗ hổng Unauthenticated Admin Creation (`POST /users`), gỡ bỏ Backdoor mật khẩu Admin cứng |
+| Cache Resilience     | ✅ Done    | Thêm `CacheErrorHandler` cho Spring Cache / Redis, tự động fallback DB khi Redis offline |
+| FE Form & API Optimization | ✅ Done | Rà soát & sửa API call FE (nhập tay thông tin SV mới, truyền đúng `majorId` & `classGroupId` dạng số khớp DTO) |
+| UI Pagination Bar    | ✅ Done    | Component `Pagination` với chọn số dòng/trang, đếm kết quả, nút số trang ở góc dưới bên phải trên tất cả bảng danh sách |
+| Pattern Search & Export | ✅ Done | Chuẩn hóa Backend `BasePaginationRS<T>`, `POST /search`, `POST /export` + Component `SearchExportBar` & Xuất Excel `.xlsx` ở FE |
 | Redis config        | ✅ Done     | Token blacklist storage                           |
 | Entity layer        | ✅ Done     | 19 Entities: 13 Masterdata (`Long IDENTITY`) + 5 Identity (`String UUID`) + 1 Auth (`String manual`) |
 | Repository layer    | ✅ Done     | 15+ Repositories với `existsByIdAndDeletedFalse`, `findAllByIdInAndDeletedFalse` |
 | Service layer       | ✅ Done     | Interfaces + Implementations với Batch DTO Assembly (chống N+1 Query) |
-| Controller layer    | ✅ Done     | 12 REST Controllers với CRUD + Pageable endpoints |
+| Controller layer    | ✅ Done     | 12 REST Controllers với CRUD + Pageable + Search/Export endpoints |
 | DTO + MapStruct     | ✅ Done     | Request/Response DTOs, Mappers phẳng hóa          |
 | Exception handling  | ✅ Done     | GlobalExceptionHandler, ErrorCode enum, ApiResponse|
 | JWT Authentication  | ✅ Done     | Login, logout, refresh token                      |
@@ -32,9 +37,12 @@
 | Default Roles Init  | ✅ Done     | Tự khởi tạo `ROLE_ADMIN`, `ROLE_USER`, `ROLE_TEACHER`, `ROLE_STUDENT` |
 | Admin initializer   | ✅ Done     | Tạo tài khoản Admin/Teacher/Student mặc định      |
 | Soft Delete (Xóa mềm)| ✅ Done     | Thêm cột `deleted` và Hibernate `@SQLDelete`, `@SQLRestriction` cho Masterdata |
-| Automated Test Suite| ✅ Done     | `./mvnw test` → **9/9 TESTS PASSED 100%** |
+| Automated Test Suite| ✅ Done     | `./mvnw test` → **BUILD SUCCESS (5/5 tests PASS)** |
 | Skills Integration  | ✅ Done     | Cài đặt 9 Agentic Skills từ Pocock set vào `.agents/skills/` |
-| React FE Type Sync  | ✅ Done     | Đồng bộ TypeScript types với backend DTOs |
+| React FE Type Sync  | ✅ Done     | Đồng bộ TypeScript types với backend DTOs, `npm run build` PASS 100% |
+| Timetable Matrix UI | ✅ Done     | Màn hình Thời khóa biểu dạng Ma trận theo Ca (Ca 1-5, Tiết 1-15) & 7 Ngày (có đầy đủ Chủ nhật), Lọc GV/Phòng, Xuất Excel & In TKB |
+| Dark/Light Theme    | ✅ Done     | Hệ thống đổi giao diện Sáng / Tối / Tự động (System) với nút chuyển nhanh trên Header & Profile Dropdown, tối ưu độ tương phản văn bản High-Contrast cho chế độ Sáng |
+| 4K Glassmorphism Login | ✅ Done | Màn hình Login ảnh thật 4K Ultra-HD nhìn xuyên thấu (Crystal Clear Glass), tiêu đề khổng lồ có animation dải màu chuyển động từ Trái sang Phải, miễn nhiễm hoàn toàn mảng trắng khi đổi Light Mode |
 
 ---
 
@@ -60,42 +68,40 @@ Auth (1 bảng — String manual):
 
 ## Phiên làm việc gần nhất
 
-### 2026-08-12 (Phiên chiều — Refactor Course/CourseClass sang Subject/SubjectClass)
+### 2026-08-17 (Phiên Hoàn thiện Giao diện Đăng nhập 4K Glassmorphism, Theme Sáng/Tối & Masterdata Seeding)
 
-1. **Refactor SubjectClass Entity & Layer**:
-   - Tạo mới `SubjectClass` entity (`@Table(name = "subject_class")`), `SubjectClassRepository`, `SubjectClassService`, `SubjectClassServiceImpl`, `SubjectClassController`, `SubjectClassRequest`, `SubjectClassResponse`, `SubjectClassMapper`.
-   - Xóa bỏ toàn bộ các file legacy `CourseClass...` cũ.
-2. **Cập nhật các liên kết Khóa ngoại Logic**:
-   - `ClassSchedule`, `Enrollment`, `ExamSchedule`: Chuyển trường & cột từ `course_class_id` (`courseClassId`) sang `subject_class_id` (`subjectClassId`).
-   - Cập nhật index và unique constraints tương ứng (`uk_enrollment_student_class_deleted`, `idx_schedule_subject_class`...).
-3. **Hỗ trợ Tương thích ngược (Backward Compatibility)**:
-   - Thêm `@JsonAlias` và `@JsonProperty` trong `SubjectClassRequest`, `SubjectClassResponse`, `ClassScheduleResponse`, `EnrollmentResponse`, `ExamScheduleResponse` giúp Frontend gọi API bằng key cũ (`courseClassId`, `courseClassCode`) hoặc key mới đều hoạt động bình thường.
-4. **MasterData Service & Dynamic Mapping**:
-   - Cập nhật `MasterDataServiceImpl.java` hỗ trợ lấy combo datasource cho `SUBJECT_CLASS` và `COURSE_CLASS`.
-5. **Biên dịch & Push**:
-   - `./mvnw test-compile` → **BUILD SUCCESS 100%** (184 source files compiled).
-   - Git Commit & Push thành công lên branch `ToanDev` (`origin/ToanDev`).
+1. **Khởi tạo Masterdata cho toàn bộ 13 Entities (`AdminInitializer.java`)**:
+   - Tự động kiểm tra `count == 0` và seed dữ liệu chuẩn mẫu cho 100% các đối tượng chưa có bản ghi:
+     - `Subject`: 6 môn học (Java, Web, CSDL, CNPM, Mạng máy tính, Quản trị học).
+     - `Department`: 3 khoa (CNTT, DTVT, Kinh tế & Quản trị).
+     - `Major`: 5 ngành (Kỹ thuật phần mềm, Khoa học máy tính, Hệ thống thông tin, Điện tử viễn thông, Quản trị kinh doanh).
+     - `Building`, `Floor`, `Room`: 4 tòa nhà (A2, B1, A1, C3), 4 tầng, 4 phòng học/lab/hội trường.
+     - `Teacher`: 4 giảng viên mẫu (TS. Nguyễn Văn B, ThS. Trần Thị C, PGS.TS. Lê Hoàng D, TS. Phạm Thanh E).
+     - `ClassGroup`: 4 lớp hành chính (KTPM K24A, KHMT K24A, DTVT K24, QTKD K24).
+     - `Student`: 5 sinh viên mẫu (SV24001 → SV24005) với đầy đủ thông tin ngày sinh, lớp, ngành, tài khoản.
+     - `SubjectClass`: 3 lớp học phần (SC_JAVA01, SC_WEB01, SC_DB01).
+     - `ClassSchedule`: 3 lịch học theo tuần (Thứ 2, Thứ 4, Thứ 6) gắn phòng học và giảng viên phụ trách.
+     - `ExamSchedule`: 3 lịch thi kết thúc học phần & giữa kỳ.
+     - `Enrollment`: 4 bản ghi đăng ký học phần kèm điểm số quá trình và kết quả.
+   - `./mvnw test` → **BUILD SUCCESS (5/5 tests PASS)**.
 
-### 2026-08-11 (Phiên chiều — Numeric ID Migration & FE Sync)
+2. **Thiết kế Màn hình Thời khóa biểu Ma trận 7 Ngày (`/schedule/timetable`)**:
+   - 3 chế độ xem: **Ma trận Ca học (Matrix Grid)**, **Cột 7 Ngày (7-Day Columns)**, **Dạng Bảng (Detailed List)**.
+   - Bao quát 5 Ca học (Ca 1-5, Tiết 1-15, 07:00 - 20:15) và **7 ngày trong tuần bao gồm Chủ nhật**.
+   - Tích hợp bộ lọc Giảng viên, Phòng học, Học kỳ, Năm học, Thẻ thống kê, Modal Chi tiết, Xuất Excel `.xlsx` và In TKB.
 
-1. **Chuyển đổi ID sang số**: 13 masterdata entities từ `String UUID` → `Long IDENTITY`.
-2. **Sửa FK type mismatch `ExamSchedule`**: `courseClassId` & `proctorId` từ `String` → `Long` (Entity + Request DTO + Response DTO).
-3. **Xóa `CourseController.java`** trùng mapping `/courses` với `CourseClassController.java`.
-4. **Auto DB cleanup** (`UniversityManagementApplication.java`):
-   - Phát hiện legacy VARCHAR PK → drop tables migrate BIGINT.
-   - So sánh tất cả bảng với `KNOWN_TABLES` (19 bảng) → xóa bảng thừa (VD: `course`).
-5. **Review & sửa 8 file React Frontend**:
-   - `types/schedule.ts`: ID → `number|string`, `courseId` → `courseClassId`, xóa `classGroupId`.
-   - `types/student.ts`: `id`, `classGroupId` → `number|string`.
-   - `types/management.ts`: Thêm `Subject` type, bổ sung fields `ClassSchedule`.
-   - `timetable.tsx`: Đồng bộ field names với backend.
-   - `schedule-form.tsx`: `courseId` → `courseClassId`, xóa classGroup dropdown.
-   - `course-form.tsx` & `courses.tsx`: `specialization` → `degree`.
-   - `exam-schedule-form.tsx`: Fetch `/subjects/all` thay vì `/courses/all`.
-6. **Build verification**: Backend 184 files ✅ | Frontend client+server ✅
+3. **Hệ thống Theme Sáng / Tối (Dark / Light Mode) & High-Contrast Typography**:
+   - Quản lý theme qua `ThemeProvider` (`light`, `dark`, `system`) lưu `localStorage`, anti-flicker script trên `root.tsx`.
+   - Nút chuyển nhanh Sun ☀️ / Moon 🌙 trên Header và 3 nút tùy chọn trong Profile Dropdown.
+   - Tối ưu tương phản chữ chế độ Sáng (`app.css`): Headings đen than `#0f172a`, mô tả xám đậm `#334155`, thẻ và bảng nền rõ ràng, sắc nét.
 
-### 2026-08-11 (Phiên sáng)
-- Review và Thực thi Test Suite toàn diện.
-- Khắc phục lỗi JPQL constructor query cho `StudentReportDTO` trong `StudentRepository.java`.
-- Cập nhật test cases cho `SoftDeleteTest` và `PaginationAndEntityGraphTest`.
-- Chạy toàn bộ test suite: `./mvnw test` → **BUILD SUCCESS (9/9 tests passed)**.
+4. **Nâng cấp Màn hình Đăng nhập 4K Ultra-HD Glassmorphism**:
+   - **Ảnh nền 4K**: Kéo ảnh thật kiến trúc trường đại học 4K Ultra-HD (`public/images/university-campus-bg.jpg`, độ phân giải 2560px) hiển thị 100% sống động.
+   - **Kính trong suốt nhìn xuyên thấu**: Khung form đăng nhập và 3 khối hộp `01, 02, 03` sử dụng kính pha lê trong suốt (`bg-black/20 backdrop-blur-[3px] border border-white/35`), nhìn thấy trọn vẹn từng vòm cổng và kiến trúc trường phía sau.
+   - **Tiêu đề Hero khổng lồ & Animation Gradient Trái → Phải**: Dòng chữ "Quản trị đào tạo / Trực quan & Hiện đại." đạt kích thước lớn (`text-5xl sm:text-6xl lg:text-[4.25rem] font-black`) với hiệu ứng dải màu chuyển động lướt mượt mà liên tục từ trái sang phải (`@keyframes gradientSweepLtr`).
+   - **Miễn nhiễm hoàn toàn mảng trắng**: Tự động khóa Dark Mode ở cấp Router khi vào `/login`, ngăn ngừa 100% tình trạng trắng góc khi đăng xuất từ Chế độ Sáng.
+   - **Chữ sắc nét từng pixel**: Gỡ bỏ toàn bộ `drop-shadow` tán xạ gây mờ, tối ưu chữ vector đanh thép, rõ ràng và dễ đọc nhất.
+
+5. **Xác thực Kiểm thử & Build Bundle**:
+   - Backend: `./mvnw test` → **BUILD SUCCESS 100%**.
+   - Frontend: `npm run typecheck` → **0 errors**, `npm run build` → **BUILD SUCCESS 100% (45 modules)**.

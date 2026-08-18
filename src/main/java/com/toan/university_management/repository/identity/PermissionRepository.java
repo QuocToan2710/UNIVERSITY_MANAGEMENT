@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PermissionRepository extends JpaRepository<Permission, String> {
+public interface PermissionRepository extends JpaRepository<Permission, Long> {
     Optional<Permission> findByPermissionCode(String permissionCode);
+
+    Optional<Permission> findByName(String name);
 
     Optional<Permission> findByMethodAndEndpoint(String method, String endpoint);
 
@@ -19,4 +21,6 @@ public interface PermissionRepository extends JpaRepository<Permission, String> 
     List<Permission> findByIsPublicTrue();
 
     List<Permission> findAllByPermissionCodeIn(Collection<String> permissionCodes);
+
+    List<Permission> findAllByIdIn(Collection<Long> ids);
 }

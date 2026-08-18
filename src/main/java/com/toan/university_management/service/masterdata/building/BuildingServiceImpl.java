@@ -1,6 +1,8 @@
 package com.toan.university_management.service.masterdata.building;
 
 import com.toan.university_management.dto.request.masterdata.BuildingRequest;
+import com.toan.university_management.dto.request.masterdata.BuildingSearchPaginationRQ;
+import com.toan.university_management.dto.response.BasePaginationRS;
 import com.toan.university_management.dto.response.masterdata.BuildingResponse;
 import com.toan.university_management.entity.masterdata.Building;
 import com.toan.university_management.exception.AppException;
@@ -75,5 +77,60 @@ public class BuildingServiceImpl implements BuildingService {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
         buildingRepository.deleteById(id);
+    }
+
+    @Override
+    public BasePaginationRS<BuildingResponse> search(BuildingSearchPaginationRQ search) {
+        if (search == null) search = new BuildingSearchPaginationRQ();
+        int page = Math.max(0, search.getPageNumber());
+        int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+
+        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
+        String codeFilter = search.getBuildingCode() != null ? search.getBuildingCode().trim().toLowerCase() : "";
+        String nameFilter = search.getName() != null ? search.getName().trim().toLowerCase() : "";
+        String statusFilter = search.getStatus() != null ? search.getStatus().trim().toLowerCase() : "";
+
+        List<BuildingResponse> all = buildingRepository.findAllByDeletedFalse().stream()
+                .map(buildingMapper::toBuildingResponse)
+                .filter(b -> {
+                    if (!kw.isEmpty()) {
+                        String full = ((b.getBuildingCode() != null ? b.getBuildingCode() : "") + " "
+                                + (b.getName() != null ? b.getName() : "") + " "
+                                + (b.getDescription() != null ? b.getDescription() : "")).toLowerCase();
+                        if (!full.contains(kw)) return false;
+                    }
+                    if (!codeFilter.isEmpty()) {
+                        if (b.getBuildingCode() == null || !b.getBuildingCode().toLowerCase().contains(codeFilter)) return false;
+                    }
+                    if (!nameFilter.isEmpty()) {
+                        if (b.getName() == null || !b.getName().toLowerCase().contains(nameFilter)) return false;
+                    }
+                    if (!statusFilter.isEmpty() && !"all".equalsIgnoreCase(statusFilter)) {
+                        if (b.getStatus() == null || !b.getStatus().equalsIgnoreCase(statusFilter)) return false;
+                    }
+                    return true;
+                })
+                .toList();
+
+        long count = all.size();
+        int start = page * size;
+        List<BuildingResponse> pageList = start < count ? all.subList(start, Math.min(start + size, (int) count)) : List.of();
+
+        int totalPage = (int) (count / size);
+        if (count % size != 0) totalPage++;
+
+        BasePaginationRS<BuildingResponse> outputs = new BasePaginationRS<>();
+        outputs.setItems(pageList);
+        outputs.setTotalCount(count);
+        outputs.setTotalPage(totalPage);
+        return outputs;
+    }
+
+    @Override
+    public List<BuildingResponse> export(BuildingSearchPaginationRQ search) {
+        BuildingSearchPaginationRQ copy = search != null ? search : new BuildingSearchPaginationRQ();
+        copy.setPageNumber(0);
+        copy.setPageSize(Integer.MAX_VALUE);
+        return search(copy).getItems();
     }
 }

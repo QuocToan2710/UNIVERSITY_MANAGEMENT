@@ -3,6 +3,7 @@ package com.toan.university_management.service.identity;
 import com.toan.university_management.dto.request.identity.UserRequest;
 import com.toan.university_management.dto.response.identity.RoleResponse;
 import com.toan.university_management.dto.response.identity.UserResponse;
+import com.toan.university_management.entity.identity.Role;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.identity.UserRole;
 import com.toan.university_management.exception.AppException;
@@ -50,17 +51,32 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user = userRepository.save(user);
 
-        // Map roles
+        // Map roles safely
         Set<String> roleCodes = request.getRoles();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.isAuthenticated() &&
+                authentication.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_ADMIN".equalsIgnoreCase(a.getAuthority()) || "ADMIN".equalsIgnoreCase(a.getAuthority()));
+
         if (roleCodes == null || roleCodes.isEmpty()) {
             roleCodes = Set.of("ROLE_USER");
+        } else if (!isAdmin) {
+            boolean hasPrivilegedRole = roleCodes.stream()
+                    .anyMatch(r -> "ROLE_ADMIN".equalsIgnoreCase(r) || "ADMIN".equalsIgnoreCase(r)
+                                   || "ROLE_TEACHER".equalsIgnoreCase(r) || "TEACHER".equalsIgnoreCase(r));
+            if (hasPrivilegedRole) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
         }
 
-        for (String roleCode : roleCodes) {
-            userRoleRepository.save(UserRole.builder()
-                    .userId(user.getId())
-                    .roleCode(roleCode)
-                    .build());
+        final String createdUserId = user.getId();
+        for (String rKey : roleCodes) {
+            resolveRole(rKey).ifPresent(role -> {
+                userRoleRepository.save(UserRole.builder()
+                        .userId(createdUserId)
+                        .roleId(role.getId())
+                        .build());
+            });
         }
 
         return enrichUserResponse(user);
@@ -97,12 +113,28 @@ public class UserServiceImpl implements UserService {
         user = userRepository.save(user);
 
         if (request.getRoles() != null) {
-            userRoleRepository.deleteByUserId(user.getId());
-            for (String roleCode : request.getRoles()) {
-                userRoleRepository.save(UserRole.builder()
-                        .userId(user.getId())
-                        .roleCode(roleCode)
-                        .build());
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication != null && authentication.isAuthenticated() &&
+                    authentication.getAuthorities().stream()
+                            .anyMatch(a -> "ROLE_ADMIN".equalsIgnoreCase(a.getAuthority()) || "ADMIN".equalsIgnoreCase(a.getAuthority()));
+            if (!isAdmin) {
+                boolean hasPrivilegedRole = request.getRoles().stream()
+                        .anyMatch(r -> "ROLE_ADMIN".equalsIgnoreCase(r) || "ADMIN".equalsIgnoreCase(r)
+                                       || "ROLE_TEACHER".equalsIgnoreCase(r) || "TEACHER".equalsIgnoreCase(r));
+                if (hasPrivilegedRole) {
+                    throw new AppException(ErrorCode.UNAUTHORIZED);
+                }
+            }
+
+            final String targetUserId = user.getId();
+            userRoleRepository.deleteByUserId(targetUserId);
+            for (String rKey : request.getRoles()) {
+                resolveRole(rKey).ifPresent(role -> {
+                    userRoleRepository.save(UserRole.builder()
+                            .userId(targetUserId)
+                            .roleId(role.getId())
+                            .build());
+                });
             }
         }
 
@@ -114,12 +146,17 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        userRoleRepository.deleteByUserId(user.getId());
-        for (String roleCode : roleNames) {
-            userRoleRepository.save(UserRole.builder()
-                    .userId(user.getId())
-                    .roleCode(roleCode)
-                    .build());
+        final String targetUserId = user.getId();
+        userRoleRepository.deleteByUserId(targetUserId);
+        if (roleNames != null) {
+            for (String rKey : roleNames) {
+                resolveRole(rKey).ifPresent(role -> {
+                    userRoleRepository.save(UserRole.builder()
+                            .userId(targetUserId)
+                            .roleId(role.getId())
+                            .build());
+                });
+            }
         }
 
         return enrichUserResponse(user);
@@ -145,28 +182,32 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+    private Optional<Role> resolveRole(String roleKey) {
+        try {
+            Long rId = Long.parseLong(roleKey);
+            Optional<Role> roleOpt = roleRepository.findById(rId);
+            if (roleOpt.isPresent()) return roleOpt;
+        } catch (NumberFormatException ignored) {}
+
+        return roleRepository.findByRoleCode(roleKey)
+                .or(() -> roleRepository.findByName(roleKey));
+    }
+
     private UserResponse enrichUserResponse(User user) {
         UserResponse response = userMapper.toUserResponse(user);
         List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+        Set<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).collect(Collectors.toSet());
+
         Set<RoleResponse> roles = new HashSet<>();
-
-        for (UserRole ur : userRoles) {
-            String code = ur.getRoleCode();
-            if (code != null && !code.isBlank()) {
-                String name = code.startsWith("ROLE_") ? code.substring("ROLE_".length()) : code;
-                roles.add(RoleResponse.builder().roleCode(code).name(name).build());
-            }
-        }
-
-        if (roles.isEmpty()) {
-            if ("admin".equalsIgnoreCase(user.getUsername())) {
-                roles.add(RoleResponse.builder().roleCode("ROLE_ADMIN").name("ADMIN").build());
-            } else if ("teacher".equalsIgnoreCase(user.getUsername())) {
-                roles.add(RoleResponse.builder().roleCode("ROLE_TEACHER").name("TEACHER").build());
-            } else if ("student".equalsIgnoreCase(user.getUsername())) {
-                roles.add(RoleResponse.builder().roleCode("ROLE_STUDENT").name("STUDENT").build());
-            } else {
-                roles.add(RoleResponse.builder().roleCode("ROLE_USER").name("USER").build());
+        if (!roleIds.isEmpty()) {
+            List<Role> roleEntities = roleRepository.findAllByIdIn(roleIds);
+            for (Role r : roleEntities) {
+                roles.add(RoleResponse.builder()
+                        .id(r.getId())
+                        .roleCode(r.getRoleCode())
+                        .name(r.getName())
+                        .description(r.getDescription())
+                        .build());
             }
         }
 
@@ -178,33 +219,28 @@ public class UserServiceImpl implements UserService {
         if (users.isEmpty()) return Collections.emptyList();
         Set<String> userIds = users.stream().map(User::getId).collect(Collectors.toSet());
         List<UserRole> allUserRoles = userRoleRepository.findByUserIdIn(userIds);
-        Map<String, Set<RoleResponse>> userRoleMap = new HashMap<>();
 
+        Set<Long> allRoleIds = allUserRoles.stream().map(UserRole::getRoleId).collect(Collectors.toSet());
+        Map<Long, Role> roleMap = roleRepository.findAllByIdIn(allRoleIds).stream()
+                .collect(Collectors.toMap(Role::getId, r -> r));
+
+        Map<String, Set<RoleResponse>> userRoleMap = new HashMap<>();
         for (UserRole ur : allUserRoles) {
-            String code = ur.getRoleCode();
-            if (code != null && !code.isBlank()) {
-                String name = code.startsWith("ROLE_") ? code.substring("ROLE_".length()) : code;
+            Role r = roleMap.get(ur.getRoleId());
+            if (r != null) {
                 userRoleMap.computeIfAbsent(ur.getUserId(), k -> new HashSet<>())
-                        .add(RoleResponse.builder().roleCode(code).name(name).build());
+                        .add(RoleResponse.builder()
+                                .id(r.getId())
+                                .roleCode(r.getRoleCode())
+                                .name(r.getName())
+                                .description(r.getDescription())
+                                .build());
             }
         }
 
         return users.stream().map(u -> {
             UserResponse res = userMapper.toUserResponse(u);
-            Set<RoleResponse> roles = userRoleMap.getOrDefault(u.getId(), Collections.emptySet());
-            if (roles.isEmpty()) {
-                roles = new HashSet<>();
-                if ("admin".equalsIgnoreCase(u.getUsername())) {
-                    roles.add(RoleResponse.builder().roleCode("ROLE_ADMIN").name("ADMIN").build());
-                } else if ("teacher".equalsIgnoreCase(u.getUsername())) {
-                    roles.add(RoleResponse.builder().roleCode("ROLE_TEACHER").name("TEACHER").build());
-                } else if ("student".equalsIgnoreCase(u.getUsername())) {
-                    roles.add(RoleResponse.builder().roleCode("ROLE_STUDENT").name("STUDENT").build());
-                } else {
-                    roles.add(RoleResponse.builder().roleCode("ROLE_USER").name("USER").build());
-                }
-            }
-            res.setRoles(roles);
+            res.setRoles(userRoleMap.getOrDefault(u.getId(), Collections.emptySet()));
             return res;
         }).toList();
     }

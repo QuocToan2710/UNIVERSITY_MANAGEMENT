@@ -111,6 +111,70 @@ public class StudentServiceImpl implements StudentService {
         studentRepository.deleteById(id);
     }
 
+    @Override
+    public com.toan.university_management.dto.response.BasePaginationRS<StudentResponse> search(com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ search) {
+        if (search == null) search = new com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ();
+        int page = Math.max(0, search.getPageNumber());
+        int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+
+        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
+        String codeFilter = search.getStudentCode() != null ? search.getStudentCode().trim().toLowerCase() : "";
+        String nameFilter = search.getFullName() != null ? search.getFullName().trim().toLowerCase() : "";
+        String emailFilter = search.getEmail() != null ? search.getEmail().trim().toLowerCase() : "";
+        Long majorFilter = search.getMajorId();
+        Long classGroupFilter = search.getClassGroupId();
+
+        List<StudentResponse> all = enrichStudentResponses(studentRepository.findAllByDeletedFalse()).stream()
+                .filter(s -> {
+                    if (!kw.isEmpty()) {
+                        String full = ((s.getStudentCode() != null ? s.getStudentCode() : "") + " "
+                                + (s.getFullName() != null ? s.getFullName() : "") + " "
+                                + (s.getEmail() != null ? s.getEmail() : "") + " "
+                                + (s.getClassGroupName() != null ? s.getClassGroupName() : "") + " "
+                                + (s.getMajorName() != null ? s.getMajorName() : "")).toLowerCase();
+                        if (!full.contains(kw)) return false;
+                    }
+                    if (!codeFilter.isEmpty()) {
+                        if (s.getStudentCode() == null || !s.getStudentCode().toLowerCase().contains(codeFilter)) return false;
+                    }
+                    if (!nameFilter.isEmpty()) {
+                        if (s.getFullName() == null || !s.getFullName().toLowerCase().contains(nameFilter)) return false;
+                    }
+                    if (!emailFilter.isEmpty()) {
+                        if (s.getEmail() == null || !s.getEmail().toLowerCase().contains(emailFilter)) return false;
+                    }
+                    if (majorFilter != null && majorFilter > 0) {
+                        if (s.getMajorId() == null || !s.getMajorId().equals(majorFilter)) return false;
+                    }
+                    if (classGroupFilter != null && classGroupFilter > 0) {
+                        if (s.getClassGroupId() == null || !s.getClassGroupId().equals(classGroupFilter)) return false;
+                    }
+                    return true;
+                })
+                .toList();
+
+        long count = all.size();
+        int start = page * size;
+        List<StudentResponse> pageList = start < count ? all.subList(start, Math.min(start + size, (int) count)) : List.of();
+
+        int totalPage = (int) (count / size);
+        if (count % size != 0) totalPage++;
+
+        com.toan.university_management.dto.response.BasePaginationRS<StudentResponse> outputs = new com.toan.university_management.dto.response.BasePaginationRS<>();
+        outputs.setItems(pageList);
+        outputs.setTotalCount(count);
+        outputs.setTotalPage(totalPage);
+        return outputs;
+    }
+
+    @Override
+    public List<StudentResponse> export(com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ search) {
+        com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ copy = search != null ? search : new com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ();
+        copy.setPageNumber(0);
+        copy.setPageSize(Integer.MAX_VALUE);
+        return search(copy).getItems();
+    }
+
     private StudentResponse enrichStudentResponse(Student student) {
         StudentResponse response = studentMapper.toStudentResponse(student);
         if (student.getClassGroupId() != null) {

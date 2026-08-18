@@ -35,7 +35,10 @@ public enum ErrorCode {
     MAJOR_NOT_FOUND(2008, "Major not found", HttpStatus.NOT_FOUND),
     BUILDING_NOT_FOUND(2009, "Building not found", HttpStatus.NOT_FOUND),
     ROOM_NOT_FOUND(2010, "Room not found", HttpStatus.NOT_FOUND),
-    SUBJECT_NOT_FOUND(2011, "Subject not found", HttpStatus.NOT_FOUND)
+    SUBJECT_NOT_FOUND(2011, "Subject not found", HttpStatus.NOT_FOUND),
+    ENROLLMENT_NOT_FOUND(2012, "Enrollment record not found", HttpStatus.NOT_FOUND),
+    ENROLLMENT_ALREADY_EXISTS(2013, "Student is already enrolled in this subject class", HttpStatus.BAD_REQUEST),
+    SUBJECT_CLASS_NOT_FOUND(2014, "Subject class not found", HttpStatus.NOT_FOUND)
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

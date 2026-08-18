@@ -22,6 +22,7 @@ import java.util.List;
 @Transactional
 public class PermissionServiceImpl implements PermissionService {
     PermissionRepository permissionRepository;
+    com.toan.university_management.repository.identity.RolePermissionRepository rolePermissionRepository;
     PermissionMapper permissionMapper;
 
     @Override
@@ -43,7 +44,21 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @CacheEvict(value = "publicPermissions", allEntries = true)
-    public void deletePermission(String permissionId) {
-        permissionRepository.deleteById(permissionId);
+    public void deletePermission(String permissionIdentifier) {
+        Long permId = null;
+        try {
+            permId = Long.parseLong(permissionIdentifier);
+        } catch (NumberFormatException ignored) {
+            var permOpt = permissionRepository.findByPermissionCode(permissionIdentifier)
+                    .or(() -> permissionRepository.findByName(permissionIdentifier));
+            if (permOpt.isPresent()) {
+                permId = permOpt.get().getId();
+            }
+        }
+
+        if (permId != null) {
+            rolePermissionRepository.deleteByPermissionId(permId);
+            permissionRepository.deleteById(permId);
+        }
     }
 }

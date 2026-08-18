@@ -7,10 +7,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface RoleRepository extends JpaRepository<Role, String> {
+public interface RoleRepository extends JpaRepository<Role, Long> {
     Optional<Role> findByRoleCode(String roleCode);
 
     Optional<Role> findByName(String name);
 
     List<Role> findAllByRoleCodeIn(Collection<String> roleCodes);
+
+    List<Role> findAllByIdIn(Collection<Long> ids);
 }

@@ -44,10 +44,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
         }
         if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
-            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
+            throw new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND);
         }
         if (enrollmentRepository.existsByStudentIdAndSubjectClassIdAndDeletedFalse(request.getStudentId(), request.getSubjectClassId())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.ENROLLMENT_ALREADY_EXISTS);
         }
 
         Enrollment enrollment = enrollmentMapper.toEnrollment(request);
@@ -63,7 +63,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public EnrollmentResponse getEnrollmentById(Long id) {
         Enrollment e = enrollmentRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_FOUND));
         return enrichResponse(e);
     }
 
@@ -82,7 +82,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public EnrollmentResponse updateEnrollment(Long id, EnrollmentRequest request) {
         Enrollment e = enrollmentRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_FOUND));
 
         enrollmentMapper.updateEnrollment(e, request);
         calculateTotalScore(e);
@@ -93,7 +93,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public void deleteEnrollment(Long id) {
         if (!enrollmentRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+            throw new AppException(ErrorCode.ENROLLMENT_NOT_FOUND);
         }
         enrollmentRepository.deleteById(id);
     }

@@ -12,19 +12,19 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "role_permission", indexes = {
-    @Index(name = "idx_role_perm_role_code", columnList = "role_code"),
-    @Index(name = "idx_role_perm_perm_code", columnList = "permission_code")
+    @Index(name = "idx_role_perm_role_id", columnList = "role_id"),
+    @Index(name = "idx_role_perm_perm_id", columnList = "permission_id")
 })
 public class RolePermission {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    String id;
+    Long id;
 
-    @Column(name = "role_code", nullable = false)
-    String roleCode;
+    @Column(name = "role_id", nullable = false)
+    Long roleId;
 
-    @Column(name = "permission_code", nullable = false)
-    String permissionCode;
+    @Column(name = "permission_id", nullable = false)
+    Long permissionId;
 }

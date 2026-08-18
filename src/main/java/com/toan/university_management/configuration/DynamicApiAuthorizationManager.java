@@ -26,6 +26,9 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
 
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
     private final PermissionRepository permissionRepository;
+    private final com.toan.university_management.repository.identity.UserRepository userRepository;
+    private final com.toan.university_management.repository.identity.UserRoleRepository userRoleRepository;
+    private final com.toan.university_management.repository.identity.RolePermissionRepository rolePermissionRepository;
 
     private static final Set<String> PUBLIC_POST_ENDPOINTS = Set.of(
             "/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh", "/users"
@@ -72,8 +75,8 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             return new AuthorizationDecision(false);
         }
 
-        // Allow any authenticated user to perform GET requests on read-only endpoints
-        if ("GET".equalsIgnoreCase(method)) {
+        // Allow any authenticated user to perform GET or read-only search/combo/export/all requests
+        if ("GET".equalsIgnoreCase(method) || path.endsWith("/search") || path.endsWith("/combo") || path.endsWith("/export") || path.endsWith("/all") || path.contains("/myInfo")) {
             return new AuthorizationDecision(true);
         }
 
@@ -87,19 +90,38 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             }
         }
 
-        // 4. Dynamic API permission matching against user's authorities (roleCodes & permissionCodes)
-        Set<String> userAuthCodes = authorities.stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
+        // 4. Dynamic API permission matching via User -> UserRole (roleId) -> RolePermission (permissionId)
+        try {
+            String username = authentication.getName();
+            var userOpt = userRepository.findByUsername(username)
+                    .or(() -> userRepository.findByUsernameIgnoreCase(username));
 
-        List<Permission> allPerms = permissionRepository.findAll();
-        for (Permission perm : allPerms) {
-            if (userAuthCodes.contains(perm.getPermissionCode()) || userAuthCodes.contains(perm.getName())) {
-                if (perm.getMethod() != null && perm.getMethod().equalsIgnoreCase(method)
-                        && perm.getEndpoint() != null && antPathMatcher.match(perm.getEndpoint(), path)) {
-                    return new AuthorizationDecision(true);
+            if (userOpt.isPresent()) {
+                String userId = userOpt.get().getId();
+                List<com.toan.university_management.entity.identity.UserRole> userRoles = userRoleRepository.findByUserId(userId);
+                Set<Long> roleIds = userRoles.stream()
+                        .map(com.toan.university_management.entity.identity.UserRole::getRoleId)
+                        .collect(Collectors.toSet());
+
+                if (!roleIds.isEmpty()) {
+                    List<com.toan.university_management.entity.identity.RolePermission> rolePerms = rolePermissionRepository.findByRoleIdIn(roleIds);
+                    Set<Long> permIds = rolePerms.stream()
+                            .map(com.toan.university_management.entity.identity.RolePermission::getPermissionId)
+                            .collect(Collectors.toSet());
+
+                    if (!permIds.isEmpty()) {
+                        List<Permission> userPermissions = permissionRepository.findAllByIdIn(permIds);
+                        for (Permission perm : userPermissions) {
+                            if (perm.getMethod() != null && perm.getMethod().equalsIgnoreCase(method)
+                                    && perm.getEndpoint() != null && antPathMatcher.match(perm.getEndpoint(), path)) {
+                                return new AuthorizationDecision(true);
+                            }
+                        }
+                    }
                 }
             }
+        } catch (Exception e) {
+            log.debug("Error checking user dynamic permissions: {}", e.getMessage());
         }
 
         log.warn("Access Denied for User [{}] - Endpoint: [{}] {}", authentication.getName(), method, path);

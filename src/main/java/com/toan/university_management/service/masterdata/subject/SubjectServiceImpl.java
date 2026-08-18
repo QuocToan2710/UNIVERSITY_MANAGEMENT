@@ -24,7 +24,9 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 @Transactional
-public class SubjectServiceImpl implements SubjectService {
+public class
+
+SubjectServiceImpl implements SubjectService {
     SubjectRepository subjectRepository;
     DepartmentRepository departmentRepository;
     SubjectMapper subjectMapper;

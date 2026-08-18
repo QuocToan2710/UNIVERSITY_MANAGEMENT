@@ -1,7 +1,9 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.StudentRequest;
+import com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ;
 import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.dto.response.BasePaginationRS;
 import com.toan.university_management.dto.response.masterdata.StudentResponse;
 import com.toan.university_management.service.masterdata.student.StudentService;
 import jakarta.validation.Valid;
@@ -61,6 +63,20 @@ public class StudentController {
     ApiResponse<StudentResponse> updateStudent(@PathVariable Long id, @Valid @RequestBody StudentRequest request) {
         return ApiResponse.<StudentResponse>builder()
                 .result(studentService.updateStudent(id, request))
+                .build();
+    }
+
+    @PostMapping("/search")
+    ApiResponse<BasePaginationRS<StudentResponse>> searchStudents(@RequestBody(required = false) StudentSearchPaginationRQ request) {
+        return ApiResponse.<BasePaginationRS<StudentResponse>>builder()
+                .result(studentService.search(request))
+                .build();
+    }
+
+    @PostMapping("/export")
+    ApiResponse<List<StudentResponse>> exportStudents(@RequestBody(required = false) StudentSearchPaginationRQ request) {
+        return ApiResponse.<List<StudentResponse>>builder()
+                .result(studentService.export(request))
                 .build();
     }
 

@@ -50,6 +50,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     UserRepository userRepository;
     UserRoleRepository userRoleRepository;
     RolePermissionRepository rolePermissionRepository;
+    com.toan.university_management.repository.identity.RoleRepository roleRepository;
+    com.toan.university_management.repository.identity.PermissionRepository permissionRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
     TokenBlacklistService tokenBlacklistService;
     PasswordEncoder passwordEncoder;
@@ -79,27 +81,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         if (user.getPassword() == null || user.getPassword().isBlank()) {
-            if ("admin".equalsIgnoreCase(user.getUsername()) && "admin".equals(request.getPassword())) {
-                user.setPassword(passwordEncoder.encode("admin"));
-                userRepository.save(user);
-            } else {
-                throw new AppException(ErrorCode.UNAUTHENTICATED);
-            }
-        }
-
-        boolean authenticated = false;
-        if (user.getPassword() != null && !user.getPassword().isBlank()) {
-            authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-        }
-
-        if (!authenticated && "admin".equalsIgnoreCase(user.getUsername()) && "admin".equals(request.getPassword())) {
-            user.setPassword(passwordEncoder.encode("admin"));
-            userRepository.save(user);
-            authenticated = true;
-        }
-
-        if (!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+        if (!authenticated) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
 
         var token = generateToken(user);
         return AuthenticationResponse.builder()
@@ -218,25 +206,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         StringJoiner stringJoiner = new StringJoiner(" ");
         List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
         if (!CollectionUtils.isEmpty(userRoles)) {
-            for (UserRole userRole : userRoles) {
-                String roleCode = userRole.getRoleCode();
-                if (roleCode != null && !roleCode.isBlank()) {
-                    stringJoiner.add(roleCode);
-                    if (!roleCode.startsWith("ROLE_")) {
-                        stringJoiner.add("ROLE_" + roleCode);
-                    } else {
-                        String suffix = roleCode.substring("ROLE_".length());
-                        if (!suffix.isBlank()) {
-                            stringJoiner.add(suffix);
+            java.util.Set<Long> roleIds = userRoles.stream()
+                    .map(UserRole::getRoleId)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            if (!roleIds.isEmpty()) {
+                List<com.toan.university_management.entity.identity.Role> roles = roleRepository.findAllByIdIn(roleIds);
+                for (com.toan.university_management.entity.identity.Role role : roles) {
+                    if (role.getRoleCode() != null) {
+                        stringJoiner.add(role.getRoleCode());
+                        if (!role.getRoleCode().startsWith("ROLE_")) {
+                            stringJoiner.add("ROLE_" + role.getRoleCode());
                         }
                     }
-                    List<RolePermission> rolePermissions = rolePermissionRepository.findByRoleCode(roleCode);
-                    if (!CollectionUtils.isEmpty(rolePermissions)) {
-                        for (RolePermission rp : rolePermissions) {
-                            if (rp.getPermissionCode() != null && !rp.getPermissionCode().isBlank()) {
-                                stringJoiner.add(rp.getPermissionCode());
-                            }
-                        }
+                    if (role.getName() != null) {
+                        stringJoiner.add(role.getName());
                     }
                 }
             }

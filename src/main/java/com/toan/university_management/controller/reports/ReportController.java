@@ -24,7 +24,7 @@ public class ReportController {
 
     @GetMapping("/hello")
     public ResponseEntity<byte[]> previewHelloReport() {
-        System.out.println(">>> /reports/hello CONTROLLER CALLED");
+        log.info("Previewing hello report PDF");
         byte[] pdf = reportService.exportHelloReport();
 
         return ResponseEntity.ok()

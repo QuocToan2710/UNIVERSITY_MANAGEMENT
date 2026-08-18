@@ -121,8 +121,8 @@ public class EndpointAutoScanner implements ApplicationRunner {
                 for (Permission perm : newlyCreatedPermissions) {
                     if (!perm.isPublic()) {
                         rolePermissionRepository.save(RolePermission.builder()
-                                .roleCode(adminRole.getRoleCode())
-                                .permissionCode(perm.getPermissionCode())
+                                .roleId(adminRole.getId())
+                                .permissionId(perm.getId())
                                 .build());
                     }
                 }

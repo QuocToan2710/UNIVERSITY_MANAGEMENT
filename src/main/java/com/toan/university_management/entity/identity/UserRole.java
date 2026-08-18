@@ -13,18 +13,18 @@ import lombok.experimental.FieldDefaults;
 @Entity
 @Table(name = "user_role", indexes = {
     @Index(name = "idx_user_role_user", columnList = "user_id"),
-    @Index(name = "idx_user_role_role_code", columnList = "role_code")
+    @Index(name = "idx_user_role_role_id", columnList = "role_id")
 })
 public class UserRole {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    String id;
+    Long id;
 
     @Column(name = "user_id", nullable = false)
     String userId;
 
-    @Column(name = "role_code", nullable = false)
-    String roleCode;
+    @Column(name = "role_id", nullable = false)
+    Long roleId;
 }
