@@ -15,13 +15,13 @@ import org.hibernate.annotations.SQLRestriction;
 @Entity
 @Table(name = "teacher",
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_teacher_code_deleted", columnNames = {"teacher_code", "deleted"})
+        @UniqueConstraint(name = "uk_teacher_code_deleted", columnNames = {"teacher_code", "deleted_key"})
     },
     indexes = {
         @Index(name = "idx_teacher_department", columnList = "department_id")
     }
 )
-@SQLDelete(sql = "UPDATE teacher SET deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE teacher SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class Teacher {
 
@@ -45,6 +45,21 @@ public class Teacher {
     @Column(name = "degree")
     String degree;
 
+    @Column(name = "address")
+    String address;
+
+    @Column(name = "province_id")
+    Long provinceId;
+
+    @Column(name = "district_id")
+    Long districtId;
+
+    @Column(name = "ward_id")
+    Long wardId;
+
+    @Column(name = "specific_address")
+    String specificAddress;
+
     @Column(name = "department_id")
     Long departmentId;
 
@@ -54,4 +69,8 @@ public class Teacher {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
+
+    @Builder.Default
+    @Column(name = "deleted_key", nullable = false, length = 64)
+    String deletedKey = "";
 }

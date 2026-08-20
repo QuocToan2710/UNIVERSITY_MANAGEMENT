@@ -16,6 +16,7 @@ public interface SubjectClassMapper {
 
     List<SubjectClassResponse> toSubjectClassResponseList(List<SubjectClass> list);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     void updateSubjectClass(@MappingTarget SubjectClass subjectClass, SubjectClassRequest request);
 }

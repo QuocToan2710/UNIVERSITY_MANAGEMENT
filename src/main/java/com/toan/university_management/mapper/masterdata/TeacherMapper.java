@@ -18,6 +18,7 @@ public interface TeacherMapper {
 
     List<TeacherResponse> toTeacherResponseList(List<Teacher> teachers);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     void updateTeacher(@MappingTarget Teacher teacher, TeacherRequest request);
 }

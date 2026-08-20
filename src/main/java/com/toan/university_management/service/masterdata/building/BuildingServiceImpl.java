@@ -32,7 +32,7 @@ public class BuildingServiceImpl implements BuildingService {
     @Override
     public BuildingResponse createBuilding(BuildingRequest request) {
         if (buildingRepository.existsByBuildingCodeAndDeletedFalse(request.getBuildingCode())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION);
         }
         Building building = buildingMapper.toBuilding(request);
         if (building.getStatus() == null || building.getStatus().isBlank()) {
@@ -43,13 +43,15 @@ public class BuildingServiceImpl implements BuildingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BuildingResponse getBuildingById(Long id) {
         Building building = buildingRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
         return buildingMapper.toBuildingResponse(building);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BuildingResponse> getAllBuildings() {
         return buildingRepository.findAllByDeletedFalse().stream()
                 .map(buildingMapper::toBuildingResponse)
@@ -57,6 +59,7 @@ public class BuildingServiceImpl implements BuildingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<BuildingResponse> getAllBuildings(Pageable pageable) {
         return buildingRepository.findAllByDeletedFalse(pageable)
                 .map(buildingMapper::toBuildingResponse);
@@ -65,7 +68,7 @@ public class BuildingServiceImpl implements BuildingService {
     @Override
     public BuildingResponse updateBuilding(Long id, BuildingRequest request) {
         Building building = buildingRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
         buildingMapper.updateBuilding(building, request);
         building = buildingRepository.save(building);
         return buildingMapper.toBuildingResponse(building);
@@ -74,12 +77,13 @@ public class BuildingServiceImpl implements BuildingService {
     @Override
     public void deleteBuilding(Long id) {
         if (!buildingRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+            throw new AppException(ErrorCode.BUILDING_NOT_FOUND);
         }
         buildingRepository.deleteById(id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BasePaginationRS<BuildingResponse> search(BuildingSearchPaginationRQ search) {
         if (search == null) search = new BuildingSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());

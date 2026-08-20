@@ -60,9 +60,37 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoleResponse> getAllRole() {
         List<Role> roles = roleRepository.findAll();
-        return roles.stream().map(this::enrichRoleResponse).toList();
+        if (roles.isEmpty()) return Collections.emptyList();
+
+        // Batch: lấy tất cả rolePermissions + permissions 1 lần thay vì N lần
+        Set<Long> roleIds = roles.stream().map(Role::getId).collect(Collectors.toSet());
+        List<RolePermission> allRps = rolePermissionRepository.findByRoleIdIn(roleIds);
+        Set<Long> permIds = allRps.stream().map(RolePermission::getPermissionId).collect(Collectors.toSet());
+        Map<Long, com.toan.university_management.entity.identity.Permission> permMap = permIds.isEmpty()
+                ? Collections.emptyMap()
+                : permissionRepository.findAllByIdIn(permIds).stream()
+                        .collect(Collectors.toMap(
+                                com.toan.university_management.entity.identity.Permission::getId,
+                                p -> p));
+
+        // Nhóm permissions theo roleId
+        Map<Long, Set<PermissionResponse>> rolePermMap = new HashMap<>();
+        for (RolePermission rp : allRps) {
+            com.toan.university_management.entity.identity.Permission perm = permMap.get(rp.getPermissionId());
+            if (perm != null) {
+                rolePermMap.computeIfAbsent(rp.getRoleId(), k -> new HashSet<>())
+                        .add(permissionMapper.toPermissionResponse(perm));
+            }
+        }
+
+        return roles.stream().map(role -> {
+            RoleResponse res = roleMapper.toRoleResponse(role);
+            res.setPermissions(rolePermMap.getOrDefault(role.getId(), Collections.emptySet()));
+            return res;
+        }).toList();
     }
 
     @Override

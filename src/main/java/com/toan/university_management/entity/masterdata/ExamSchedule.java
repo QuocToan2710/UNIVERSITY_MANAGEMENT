@@ -18,7 +18,7 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "exam_schedule", 
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_exam_code_deleted", columnNames = {"exam_code", "deleted"})
+        @UniqueConstraint(name = "uk_exam_code_deleted", columnNames = {"exam_code", "deleted_key"})
     },
     indexes = {
         @Index(name = "idx_exam_schedule_subject_class", columnList = "subject_class_id"),
@@ -26,7 +26,7 @@ import java.time.LocalTime;
         @Index(name = "idx_exam_schedule_proctor", columnList = "proctor_id")
     }
 )
-@SQLDelete(sql = "UPDATE exam_schedule SET deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE exam_schedule SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class ExamSchedule {
 
@@ -77,4 +77,8 @@ public class ExamSchedule {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
+
+    @Builder.Default
+    @Column(name = "deleted_key", nullable = false, length = 64)
+    String deletedKey = "";
 }

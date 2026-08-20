@@ -34,6 +34,7 @@ public class ClassGroupServiceImpl implements ClassGroupService {
     ClassGroupRepository classGroupRepository;
     TeacherRepository teacherRepository;
     MajorRepository majorRepository;
+    com.toan.university_management.repository.masterdata.StudentRepository studentRepository;
     ClassGroupMapper classGroupMapper;
 
     @Override
@@ -49,6 +50,9 @@ public class ClassGroupServiceImpl implements ClassGroupService {
         }
 
         ClassGroup classGroup = classGroupMapper.toClassGroup(request);
+        if (classGroup.getMaxStudents() == null || classGroup.getMaxStudents() <= 0) {
+            classGroup.setMaxStudents(50);
+        }
         classGroup = classGroupRepository.save(classGroup);
         return enrichClassGroupResponse(classGroup);
     }
@@ -66,6 +70,9 @@ public class ClassGroupServiceImpl implements ClassGroupService {
         }
 
         classGroupMapper.updateClassGroup(classGroup, request);
+        if (classGroup.getMaxStudents() == null || classGroup.getMaxStudents() <= 0) {
+            classGroup.setMaxStudents(50);
+        }
         classGroup = classGroupRepository.save(classGroup);
         return enrichClassGroupResponse(classGroup);
     }
@@ -96,7 +103,7 @@ public class ClassGroupServiceImpl implements ClassGroupService {
     @Override
     @Transactional(readOnly = true)
     public List<ClassGroupResponse> getAllClassGroups() {
-        List<ClassGroup> list = classGroupRepository.findAll();
+        List<ClassGroup> list = classGroupRepository.findAllByDeletedFalse();
         return enrichClassGroupResponses(list);
     }
 
@@ -108,6 +115,9 @@ public class ClassGroupServiceImpl implements ClassGroupService {
         if (cg.getMajorId() != null) {
             majorRepository.findByIdAndDeletedFalse(cg.getMajorId()).ifPresent(m -> res.setMajorName(m.getName()));
         }
+        long count = studentRepository.countByClassGroupIdAndDeletedFalse(cg.getId());
+        res.setCurrentStudents((int) count);
+        res.setMaxStudents(cg.getMaxStudents() != null && cg.getMaxStudents() > 0 ? cg.getMaxStudents() : 50);
         return res;
     }
 
@@ -120,6 +130,20 @@ public class ClassGroupServiceImpl implements ClassGroupService {
         Map<Long, Teacher> teacherMap = teacherRepository.findAllByIdInAndDeletedFalse(teacherIds).stream().collect(Collectors.toMap(Teacher::getId, Function.identity()));
         Map<Long, Major> majorMap = majorRepository.findAllByIdInAndDeletedFalse(majorIds).stream().collect(Collectors.toMap(Major::getId, Function.identity()));
 
+        Map<Long, Integer> studentCountMap = new HashMap<>();
+        try {
+            List<Object[]> countRows = studentRepository.countStudentsGroupedByClassGroup();
+            for (Object[] row : countRows) {
+                if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                    Long cgId = ((Number) row[0]).longValue();
+                    int cnt = ((Number) row[1]).intValue();
+                    studentCountMap.put(cgId, cnt);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to batch count students: {}", e.getMessage());
+        }
+
         return list.stream().map(cg -> {
             ClassGroupResponse res = classGroupMapper.toClassGroupResponse(cg);
             if (cg.getHomeroomTeacherId() != null && teacherMap.containsKey(cg.getHomeroomTeacherId())) {
@@ -128,6 +152,9 @@ public class ClassGroupServiceImpl implements ClassGroupService {
             if (cg.getMajorId() != null && majorMap.containsKey(cg.getMajorId())) {
                 res.setMajorName(majorMap.get(cg.getMajorId()).getName());
             }
+            int cur = studentCountMap.getOrDefault(cg.getId(), 0);
+            res.setCurrentStudents(cur);
+            res.setMaxStudents(cg.getMaxStudents() != null && cg.getMaxStudents() > 0 ? cg.getMaxStudents() : 50);
             return res;
         }).toList();
     }

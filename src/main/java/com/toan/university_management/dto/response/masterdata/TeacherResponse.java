@@ -15,6 +15,15 @@ public class TeacherResponse {
     String email;
     String phoneNumber;
     String degree;
+    String address;
+    Long provinceId;
+    String provinceName;
+    Long districtId;
+    String districtName;
+    Long wardId;
+    String wardName;
+    String specificAddress;
+    String fullAddress;
     Long departmentId;
     String departmentName;
     String userId;

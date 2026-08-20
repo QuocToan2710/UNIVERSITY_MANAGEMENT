@@ -14,9 +14,9 @@ import org.hibernate.annotations.SQLRestriction;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "user", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_user_username_deleted", columnNames = {"username", "deleted"})
+    @UniqueConstraint(name = "uk_user_username_deleted", columnNames = {"username", "deleted_key"})
 })
-@SQLDelete(sql = "UPDATE user SET deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE user SET deleted = true, deleted_key = id WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class User {
 
@@ -43,4 +43,8 @@ public class User {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
+
+    @Builder.Default
+    @Column(name = "deleted_key", nullable = false, length = 64)
+    String deletedKey = "";
 }

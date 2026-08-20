@@ -32,7 +32,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public RoomResponse createRoom(RoomRequest request) {
         if (roomRepository.existsByRoomCodeAndDeletedFalse(request.getRoomCode())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION);
         }
         if (request.getBuildingId() != null && !buildingRepository.existsByIdAndDeletedFalse(request.getBuildingId())) {
             throw new AppException(ErrorCode.BUILDING_NOT_FOUND);
@@ -52,6 +52,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RoomResponse getRoomById(Long id) {
         Room room = roomRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ROOM_NOT_FOUND));
@@ -59,6 +60,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoomResponse> getAllRooms() {
         return roomRepository.findAllByDeletedFalse().stream()
                 .map(roomMapper::toRoomResponse)
@@ -66,6 +68,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<RoomResponse> getAllRooms(Pageable pageable) {
         return roomRepository.findAllByDeletedFalse(pageable)
                 .map(roomMapper::toRoomResponse);
@@ -79,6 +82,11 @@ public class RoomServiceImpl implements RoomService {
             throw new AppException(ErrorCode.BUILDING_NOT_FOUND);
         }
         roomMapper.updateRoom(room, request);
+        if (room.getBuildingId() != null) {
+            Room finalRoom = room;
+            buildingRepository.findByIdAndDeletedFalse(room.getBuildingId())
+                    .ifPresent(b -> finalRoom.setBuilding(b.getName()));
+        }
         room = roomRepository.save(room);
         return roomMapper.toRoomResponse(room);
     }

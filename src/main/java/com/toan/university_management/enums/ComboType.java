@@ -18,5 +18,8 @@ public enum ComboType {
     ROOM_TYPE,
     STUDENT_STATUS,
     SEMESTER,
-    ACADEMIC_YEAR
+    ACADEMIC_YEAR,
+    PROVINCE,
+    DISTRICT,
+    WARD
 }

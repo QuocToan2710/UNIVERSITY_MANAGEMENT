@@ -64,6 +64,22 @@ public class TeacherController {
                 .build();
     }
 
+    @PostMapping("/search")
+    ApiResponse<com.toan.university_management.dto.response.BasePaginationRS<TeacherResponse>> searchTeachers(
+            @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ request) {
+        return ApiResponse.<com.toan.university_management.dto.response.BasePaginationRS<TeacherResponse>>builder()
+                .result(teacherService.search(request))
+                .build();
+    }
+
+    @PostMapping("/export")
+    ApiResponse<List<TeacherResponse>> exportTeachers(
+            @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ request) {
+        return ApiResponse.<List<TeacherResponse>>builder()
+                .result(teacherService.export(request))
+                .build();
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<String> deleteTeacher(@PathVariable Long id) {

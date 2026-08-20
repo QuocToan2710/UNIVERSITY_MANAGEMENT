@@ -30,6 +30,9 @@ public class MasterDataServiceImpl implements MasterDataService {
     ClassGroupRepository classGroupRepository;
     StudentRepository studentRepository;
     SubjectClassRepository subjectClassRepository;
+    ProvinceRepository provinceRepository;
+    DistrictRepository districtRepository;
+    WardRepository wardRepository;
 
     @Override
     public List<SelectOptionResponse> getByType(GetComboDataSourceInput input) {
@@ -196,6 +199,49 @@ public class MasterDataServiceImpl implements MasterDataService {
                     new SelectOptionResponse("2025-2026", "2025 - 2026", "2025-2026", null),
                     new SelectOptionResponse("2023-2024", "2023 - 2024", "2023-2024", null)
             );
+
+            case PROVINCE -> provinceRepository.findAllByDeletedFalseOrderByProvinceNameAsc().stream()
+                    .map(p -> SelectOptionResponse.builder()
+                            .value(useCodeAsId ? p.getProvinceCode() : String.valueOf(p.getId()))
+                            .label(p.getProvinceName())
+                            .code(p.getProvinceCode())
+                            .extra(p.getProvinceType())
+                            .build())
+                    .toList();
+
+            case DISTRICT -> {
+                var stream = districtRepository.findAllByDeletedFalseOrderByDistrictNameAsc().stream();
+                if (cascader != null && !cascader.isBlank()) {
+                    Long provId = parseOrFindProvinceId(cascader);
+                    if (provId != null) {
+                        stream = stream.filter(d -> provId.equals(d.getProvinceId()));
+                    }
+                }
+                yield stream.map(d -> SelectOptionResponse.builder()
+                                .value(useCodeAsId ? d.getDistrictCode() : String.valueOf(d.getId()))
+                                .label(d.getDistrictName())
+                                .code(d.getDistrictCode())
+                                .extra(d.getProvinceId() != null ? String.valueOf(d.getProvinceId()) : null)
+                                .build())
+                        .toList();
+            }
+
+            case WARD -> {
+                var stream = wardRepository.findAllByDeletedFalseOrderByWardNameAsc().stream();
+                if (cascader != null && !cascader.isBlank()) {
+                    Long distId = parseOrFindDistrictId(cascader);
+                    if (distId != null) {
+                        stream = stream.filter(w -> distId.equals(w.getDistrictId()));
+                    }
+                }
+                yield stream.map(w -> SelectOptionResponse.builder()
+                                .value(useCodeAsId ? w.getWardCode() : String.valueOf(w.getId()))
+                                .label(w.getWardName())
+                                .code(w.getWardCode())
+                                .extra(w.getDistrictId() != null ? String.valueOf(w.getDistrictId()) : null)
+                                .build())
+                        .toList();
+            }
         };
     }
 
@@ -217,6 +263,28 @@ public class MasterDataServiceImpl implements MasterDataService {
         } catch (NumberFormatException e) {
             return buildingRepository.findByBuildingCodeAndDeletedFalse(cascader)
                     .map(Building::getId)
+                    .orElse(null);
+        }
+    }
+
+    private Long parseOrFindProvinceId(String cascader) {
+        if (cascader == null || cascader.isBlank()) return null;
+        try {
+            return Long.parseLong(cascader);
+        } catch (NumberFormatException e) {
+            return provinceRepository.findByProvinceCodeAndDeletedFalse(cascader)
+                    .map(Province::getId)
+                    .orElse(null);
+        }
+    }
+
+    private Long parseOrFindDistrictId(String cascader) {
+        if (cascader == null || cascader.isBlank()) return null;
+        try {
+            return Long.parseLong(cascader);
+        } catch (NumberFormatException e) {
+            return districtRepository.findByDistrictCodeAndDeletedFalse(cascader)
+                    .map(District::getId)
                     .orElse(null);
         }
     }

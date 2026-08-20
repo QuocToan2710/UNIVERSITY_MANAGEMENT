@@ -573,7 +573,7 @@ public class AdminInitializer {
                 user.setUserCode(userCode);
                 needSave = true;
             }
-            if (user.getPassword() == null || user.getPassword().isBlank() || !passwordEncoder.matches(rawPassword, user.getPassword())) {
+            if (user.getPassword() == null || user.getPassword().isBlank()) {
                 user.setPassword(passwordEncoder.encode(rawPassword));
                 needSave = true;
             }

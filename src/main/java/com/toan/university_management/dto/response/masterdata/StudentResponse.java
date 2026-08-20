@@ -20,6 +20,14 @@ public class StudentResponse {
     Date dob;
     String gender;
     String address;
+    Long provinceId;
+    String provinceName;
+    Long districtId;
+    String districtName;
+    Long wardId;
+    String wardName;
+    String specificAddress;
+    String fullAddress;
     String enrollmentYear;
     StudentStatus status;
     Long classGroupId;

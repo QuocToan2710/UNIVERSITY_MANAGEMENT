@@ -56,7 +56,7 @@ public class SubjectClassServiceImpl implements SubjectClassService {
     @Override
     public SubjectClassResponse updateSubjectClass(Long id, SubjectClassRequest request) {
         SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
 
         subjectClassMapper.updateSubjectClass(subjectClass, request);
         subjectClass = subjectClassRepository.save(subjectClass);
@@ -66,7 +66,7 @@ public class SubjectClassServiceImpl implements SubjectClassService {
     @Override
     public void deleteSubjectClass(Long id) {
         if (!subjectClassRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
+            throw new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND);
         }
         subjectClassRepository.deleteById(id);
     }
@@ -75,7 +75,7 @@ public class SubjectClassServiceImpl implements SubjectClassService {
     @Transactional(readOnly = true)
     public SubjectClassResponse getSubjectClassById(Long id) {
         SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_NOT_FOUND));
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
         return enrichResponse(subjectClass);
     }
 

@@ -18,6 +18,8 @@ public class ClassGroupResponse {
     String academicYear;
     Long homeroomTeacherId;
     String homeroomTeacherName;
+    Integer currentStudents;
+    Integer maxStudents;
 
     @JsonProperty("major")
     public String getMajor() {
@@ -26,6 +28,6 @@ public class ClassGroupResponse {
 
     @JsonProperty("studentCount")
     public int getStudentCount() {
-        return 45;
+        return currentStudents != null ? currentStudents : 0;
     }
 }

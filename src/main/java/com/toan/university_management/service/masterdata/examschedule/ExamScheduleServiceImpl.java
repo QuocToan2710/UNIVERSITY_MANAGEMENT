@@ -2,12 +2,16 @@ package com.toan.university_management.service.masterdata.examschedule;
 
 import com.toan.university_management.dto.request.masterdata.ExamScheduleRequest;
 import com.toan.university_management.dto.response.masterdata.ExamScheduleResponse;
+import com.toan.university_management.entity.masterdata.Enrollment;
 import com.toan.university_management.entity.masterdata.ExamSchedule;
 import com.toan.university_management.entity.masterdata.Subject;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;
 import com.toan.university_management.mapper.masterdata.ExamScheduleMapper;
+import com.toan.university_management.repository.identity.UserRepository;
+import com.toan.university_management.repository.masterdata.EnrollmentRepository;
 import com.toan.university_management.repository.masterdata.ExamScheduleRepository;
+import com.toan.university_management.repository.masterdata.StudentRepository;
 import com.toan.university_management.repository.masterdata.SubjectRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,11 +37,14 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     ExamScheduleRepository examScheduleRepository;
     SubjectRepository subjectRepository;
     ExamScheduleMapper examScheduleMapper;
+    UserRepository userRepository;
+    StudentRepository studentRepository;
+    EnrollmentRepository enrollmentRepository;
 
     @Override
     public ExamScheduleResponse createExamSchedule(ExamScheduleRequest request) {
         if (examScheduleRepository.existsByExamCodeAndDeletedFalse(request.getExamCode())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION);
         }
         ExamSchedule examSchedule = examScheduleMapper.toExamSchedule(request);
         examSchedule = examScheduleRepository.save(examSchedule);
@@ -44,18 +52,21 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ExamScheduleResponse getExamScheduleById(Long id) {
         ExamSchedule examSchedule = examScheduleRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
         return enrichResponse(examSchedule);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamScheduleResponse> getAllExamSchedules() {
         return enrichResponses(examScheduleRepository.findAllByDeletedFalse());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ExamScheduleResponse> getAllExamSchedules(Pageable pageable) {
         Page<ExamSchedule> page = examScheduleRepository.findAllByDeletedFalse(pageable);
         List<ExamScheduleResponse> content = enrichResponses(page.getContent());
@@ -63,14 +74,30 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamScheduleResponse> getMyExamSchedules() {
-        return getAllExamSchedules();
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .flatMap(u -> studentRepository.findByUserIdAndDeletedFalse(u.getId()))
+                .map(student -> {
+                    // Lấy danh sách subjectClassId từ enrollment của student
+                    Set<Long> subjectClassIds = enrollmentRepository
+                            .findAllByStudentIdAndDeletedFalse(student.getId())
+                            .stream()
+                            .map(Enrollment::getSubjectClassId)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toSet());
+                    if (subjectClassIds.isEmpty()) return Collections.<ExamScheduleResponse>emptyList();
+                    return enrichResponses(
+                            examScheduleRepository.findAllBySubjectClassIdInAndDeletedFalse(subjectClassIds));
+                })
+                .orElse(Collections.emptyList());
     }
 
     @Override
     public ExamScheduleResponse updateExamSchedule(Long id, ExamScheduleRequest request) {
         ExamSchedule examSchedule = examScheduleRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
         examScheduleMapper.updateExamSchedule(examSchedule, request);
         examSchedule = examScheduleRepository.save(examSchedule);
         return enrichResponse(examSchedule);
@@ -79,7 +106,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     @Override
     public void deleteExamSchedule(Long id) {
         if (!examScheduleRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+            throw new AppException(ErrorCode.SCHEDULE_NOT_FOUND);
         }
         examScheduleRepository.deleteById(id);
     }

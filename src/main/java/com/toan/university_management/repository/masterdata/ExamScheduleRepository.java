@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,7 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
     Optional<ExamSchedule> findByIdAndDeletedFalse(Long id);
     Page<ExamSchedule> findAllByDeletedFalse(Pageable pageable);
     List<ExamSchedule> findAllByDeletedFalse();
+    List<ExamSchedule> findAllBySubjectClassIdInAndDeletedFalse(Collection<Long> subjectClassIds);
     boolean existsByExamCodeAndDeletedFalse(String examCode);
     boolean existsByIdAndDeletedFalse(Long id);
 }

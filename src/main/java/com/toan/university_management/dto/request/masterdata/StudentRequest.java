@@ -20,6 +20,10 @@ public class StudentRequest {
     Date dob;
     String gender;
     String address;
+    Long provinceId;
+    Long districtId;
+    Long wardId;
+    String specificAddress;
     String enrollmentYear;
     StudentStatus status;
     Long classGroupId;

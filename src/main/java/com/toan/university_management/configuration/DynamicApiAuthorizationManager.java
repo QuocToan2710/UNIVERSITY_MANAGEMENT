@@ -34,6 +34,19 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             "/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh", "/users"
     );
 
+    private static final List<String> AUTHENTICATED_SELF_ENDPOINTS = List.of(
+            "/users/myInfo",
+            "/users/change-password",
+            "/notifications/my",
+            "/notifications/summary",
+            "/notifications/unread-count",
+            "/notifications/*/read",
+            "/notifications/read-all",
+            "/schedules/my",
+            "/exam-schedules/my",
+            "/teaching-schedules/my"
+    );
+
     @Override
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier, RequestAuthorizationContext context) {
         HttpServletRequest request = context.getRequest();
@@ -75,12 +88,16 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             return new AuthorizationDecision(false);
         }
 
-        // Allow any authenticated user to perform GET or read-only search/combo/export/all requests
-        if ("GET".equalsIgnoreCase(method) || path.endsWith("/search") || path.endsWith("/combo") || path.endsWith("/export") || path.endsWith("/all") || path.contains("/myInfo")) {
-            return new AuthorizationDecision(true);
+        // 2.5 Allow authenticated self-service endpoints (Profile, Notifications, My Schedules)
+        for (String selfEp : AUTHENTICATED_SELF_ENDPOINTS) {
+            if (antPathMatcher.match(selfEp, path)) {
+                return new AuthorizationDecision(true);
+            }
         }
 
+
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+
 
         // 3. Admin wildcard override
         for (GrantedAuthority authority : authorities) {

@@ -18,6 +18,7 @@ public interface EnrollmentMapper {
 
     List<EnrollmentResponse> toEnrollmentResponseList(List<Enrollment> list);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "totalScore", ignore = true)
     @Mapping(target = "enrolledAt", ignore = true)

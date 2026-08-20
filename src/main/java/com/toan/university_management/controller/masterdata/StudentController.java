@@ -28,7 +28,7 @@ public class StudentController {
     StudentService studentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     ApiResponse<StudentResponse> createStudent(@Valid @RequestBody StudentRequest request) {
         return ApiResponse.<StudentResponse>builder()
                 .message("Successfully created student")
@@ -59,7 +59,7 @@ public class StudentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     ApiResponse<StudentResponse> updateStudent(@PathVariable Long id, @Valid @RequestBody StudentRequest request) {
         return ApiResponse.<StudentResponse>builder()
                 .result(studentService.updateStudent(id, request))

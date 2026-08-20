@@ -17,6 +17,7 @@ public interface StudentMapper {
 
     StudentResponse toStudentResponse(Student student);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     void updateStudent(@MappingTarget Student student, StudentRequest request);
 

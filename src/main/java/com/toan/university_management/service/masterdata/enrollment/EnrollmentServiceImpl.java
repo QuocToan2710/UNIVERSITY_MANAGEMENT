@@ -36,18 +36,57 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     EnrollmentRepository enrollmentRepository;
     StudentRepository studentRepository;
     SubjectClassRepository subjectClassRepository;
+    com.toan.university_management.repository.masterdata.ClassScheduleRepository classScheduleRepository;
     EnrollmentMapper enrollmentMapper;
+    com.toan.university_management.service.notification.NotificationService notificationService;
 
     @Override
     public EnrollmentResponse createEnrollment(EnrollmentRequest request) {
         if (!studentRepository.existsByIdAndDeletedFalse(request.getStudentId())) {
             throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
         }
-        if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
-            throw new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND);
+        SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(request.getSubjectClassId())
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
+
+        // 1. Sĩ số tối đa
+        if (subjectClass.getMaxCapacity() > 0) {
+            long currentCount = enrollmentRepository.countBySubjectClassIdAndDeletedFalse(subjectClass.getId());
+            if (currentCount >= subjectClass.getMaxCapacity()) {
+                throw new AppException(ErrorCode.ENROLLMENT_CAPACITY_FULL);
+            }
         }
+
+        // 2. Trùng lớp học phần
         if (enrollmentRepository.existsByStudentIdAndSubjectClassIdAndDeletedFalse(request.getStudentId(), request.getSubjectClassId())) {
             throw new AppException(ErrorCode.ENROLLMENT_ALREADY_EXISTS);
+        }
+
+        // 3. Trùng lịch học (Schedule conflict)
+        List<com.toan.university_management.entity.masterdata.ClassSchedule> targetSchedules = 
+                classScheduleRepository.findAllBySubjectClassIdInAndDeletedFalse(List.of(subjectClass.getId()));
+        if (!targetSchedules.isEmpty()) {
+            List<Enrollment> existingEnrollments = enrollmentRepository.findAllByStudentIdAndDeletedFalse(request.getStudentId());
+            Set<Long> existingClassIds = existingEnrollments.stream()
+                    .map(Enrollment::getSubjectClassId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            if (!existingClassIds.isEmpty()) {
+                List<com.toan.university_management.entity.masterdata.ClassSchedule> existingSchedules =
+                        classScheduleRepository.findAllBySubjectClassIdInAndDeletedFalse(existingClassIds);
+
+                for (var targetSch : targetSchedules) {
+                    for (var existSch : existingSchedules) {
+                        if (targetSch.getDayOfWeek() == existSch.getDayOfWeek()) {
+                            boolean hasOverlap = targetSch.getStartTime().isBefore(existSch.getEndTime()) 
+                                    && targetSch.getEndTime().isAfter(existSch.getStartTime());
+                            if (hasOverlap) {
+                                throw new AppException(ErrorCode.ENROLLMENT_SCHEDULE_CONFLICT);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Enrollment enrollment = enrollmentMapper.toEnrollment(request);
@@ -57,10 +96,31 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.setEnrolledAt(LocalDateTime.now());
         calculateTotalScore(enrollment);
 
-        return enrichResponse(enrollmentRepository.save(enrollment));
+        Enrollment saved = enrollmentRepository.save(enrollment);
+
+        try {
+            studentRepository.findByIdAndDeletedFalse(saved.getStudentId()).ifPresent(s -> {
+                if (s.getUserId() != null) {
+                    notificationService.sendSystemNotification(
+                            "Đăng ký học phần thành công",
+                            "Bạn đã đăng ký thành công vào lớp: " + subjectClass.getName() + " (" + subjectClass.getSubjectClassCode() + ")",
+                            com.toan.university_management.enums.NotificationType.ENROLLMENT,
+                            com.toan.university_management.enums.NotificationPriority.NORMAL,
+                            com.toan.university_management.enums.NotificationTargetType.USER,
+                            s.getUserId(),
+                            "/schedule/timetable"
+                    );
+                }
+            });
+        } catch (Exception ex) {
+            log.warn("Could not send enrollment notification: {}", ex.getMessage());
+        }
+
+        return enrichResponse(saved);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EnrollmentResponse getEnrollmentById(Long id) {
         Enrollment e = enrollmentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_FOUND));
@@ -68,11 +128,13 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnrollmentResponse> getAllEnrollments() {
         return enrichResponses(enrollmentRepository.findAllByDeletedFalse());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<EnrollmentResponse> getAllEnrollments(Pageable pageable) {
         Page<Enrollment> page = enrollmentRepository.findAllByDeletedFalse(pageable);
         List<EnrollmentResponse> content = enrichResponses(page.getContent());

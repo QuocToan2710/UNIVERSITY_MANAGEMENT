@@ -18,15 +18,15 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "enrollment", 
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_enrollment_code_deleted", columnNames = {"enrollment_code", "deleted"}),
-        @UniqueConstraint(name = "uk_enrollment_student_class_deleted", columnNames = {"student_id", "subject_class_id", "deleted"})
+        @UniqueConstraint(name = "uk_enrollment_code_deleted", columnNames = {"enrollment_code", "deleted_key"}),
+        @UniqueConstraint(name = "uk_enrollment_student_class_deleted", columnNames = {"student_id", "subject_class_id", "deleted_key"})
     },
     indexes = {
         @Index(name = "idx_enrollment_student", columnList = "student_id"),
         @Index(name = "idx_enrollment_subject_class", columnList = "subject_class_id")
     }
 )
-@SQLDelete(sql = "UPDATE enrollment SET deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE enrollment SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class Enrollment {
 
@@ -67,4 +67,8 @@ public class Enrollment {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
+
+    @Builder.Default
+    @Column(name = "deleted_key", nullable = false, length = 64)
+    String deletedKey = "";
 }

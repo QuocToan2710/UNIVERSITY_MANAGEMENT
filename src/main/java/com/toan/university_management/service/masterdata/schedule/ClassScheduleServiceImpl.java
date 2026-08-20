@@ -3,14 +3,18 @@ package com.toan.university_management.service.masterdata.schedule;
 import com.toan.university_management.dto.request.masterdata.ClassScheduleRequest;
 import com.toan.university_management.dto.response.masterdata.ClassScheduleResponse;
 import com.toan.university_management.entity.masterdata.ClassSchedule;
+import com.toan.university_management.entity.masterdata.Enrollment;
 import com.toan.university_management.entity.masterdata.SubjectClass;
 import com.toan.university_management.entity.masterdata.Teacher;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;
 import com.toan.university_management.mapper.masterdata.ClassScheduleMapper;
 import com.toan.university_management.repository.masterdata.ClassScheduleRepository;
+import com.toan.university_management.repository.masterdata.EnrollmentRepository;
+import com.toan.university_management.repository.masterdata.StudentRepository;
 import com.toan.university_management.repository.masterdata.SubjectClassRepository;
 import com.toan.university_management.repository.masterdata.TeacherRepository;
+import com.toan.university_management.repository.identity.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +41,10 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     SubjectClassRepository subjectClassRepository;
     TeacherRepository teacherRepository;
     ClassScheduleMapper classScheduleMapper;
+    EnrollmentRepository enrollmentRepository;
+    StudentRepository studentRepository;
+    UserRepository userRepository;
+    com.toan.university_management.service.notification.NotificationService notificationService;
 
     @Override
     public ClassScheduleResponse createSchedule(ClassScheduleRequest request) {
@@ -44,6 +53,24 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
 
         if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
             throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
+        }
+
+        // Kiểm tra conflict giáo viên
+        if (request.getTeacherId() != null) {
+            if (classScheduleRepository.existsTeacherConflict(
+                    request.getTeacherId(), request.getDayOfWeek(),
+                    request.getStartTime(), request.getEndTime(), null)) {
+                throw new AppException(ErrorCode.SCHEDULE_TEACHER_CONFLICT);
+            }
+        }
+
+        // Kiểm tra conflict phòng học
+        if (request.getRoom() != null && !request.getRoom().isBlank()) {
+            if (classScheduleRepository.existsRoomConflict(
+                    request.getRoom(), request.getDayOfWeek(),
+                    request.getStartTime(), request.getEndTime(), null)) {
+                throw new AppException(ErrorCode.SCHEDULE_ROOM_CONFLICT);
+            }
         }
 
         ClassSchedule schedule = classScheduleMapper.toClassSchedule(request);
@@ -63,13 +90,45 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         if (!request.getEndTime().isAfter(request.getStartTime()))
             throw new AppException(ErrorCode.SCHEDULE_TIME_INVALID);
 
-        classScheduleMapper.updateSchedule(schedule, request);
-
         if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
             throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
         }
 
+        // Kiểm tra conflict giáo viên (loại trừ schedule hiện tại)
+        if (request.getTeacherId() != null) {
+            if (classScheduleRepository.existsTeacherConflict(
+                    request.getTeacherId(), request.getDayOfWeek(),
+                    request.getStartTime(), request.getEndTime(), id)) {
+                throw new AppException(ErrorCode.SCHEDULE_TEACHER_CONFLICT);
+            }
+        }
+
+        // Kiểm tra conflict phòng học (loại trừ schedule hiện tại)
+        if (request.getRoom() != null && !request.getRoom().isBlank()) {
+            if (classScheduleRepository.existsRoomConflict(
+                    request.getRoom(), request.getDayOfWeek(),
+                    request.getStartTime(), request.getEndTime(), id)) {
+                throw new AppException(ErrorCode.SCHEDULE_ROOM_CONFLICT);
+            }
+        }
+
+        classScheduleMapper.updateSchedule(schedule, request);
         schedule = classScheduleRepository.save(schedule);
+
+        try {
+            notificationService.sendSystemNotification(
+                    "Cập nhật thời khóa biểu",
+                    "Thời khóa biểu lớp mã " + schedule.getScheduleCode() + " đã được cập nhật sang thứ " + schedule.getDayOfWeek() + ", phòng: " + (schedule.getRoom() != null ? schedule.getRoom() : "Chưa xếp phòng"),
+                    com.toan.university_management.enums.NotificationType.SCHEDULE,
+                    com.toan.university_management.enums.NotificationPriority.HIGH,
+                    com.toan.university_management.enums.NotificationTargetType.SUBJECT_CLASS,
+                    String.valueOf(schedule.getSubjectClassId()),
+                    "/schedule/class"
+            );
+        } catch (Exception ex) {
+            log.warn("Could not send schedule update notification: {}", ex.getMessage());
+        }
+
         return enrichScheduleResponse(schedule);
     }
 
@@ -99,37 +158,87 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getAllSchedules() {
-        return enrichScheduleResponses(classScheduleRepository.findAll());
+        return enrichScheduleResponses(classScheduleRepository.findAllByDeletedFalse());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getMySchedule(String semester, String academicYear) {
-        return enrichScheduleResponses(classScheduleRepository.findAll());
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .flatMap(u -> studentRepository.findByUserIdAndDeletedFalse(u.getId()))
+                .map(student -> getByStudent(student.getId(), semester, academicYear))
+                .orElse(Collections.emptyList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getByTeacher(Long teacherId, String semester, String academicYear) {
-        return enrichScheduleResponses(classScheduleRepository.findAll());
+        if (teacherId == null) return Collections.emptyList();
+        List<ClassSchedule> schedules;
+        if ((semester == null || semester.isBlank()) && (academicYear == null || academicYear.isBlank())) {
+            schedules = classScheduleRepository.findAllByDeletedFalse()
+                    .stream().filter(s -> teacherId.equals(s.getTeacherId())).collect(Collectors.toList());
+        } else {
+            schedules = classScheduleRepository
+                    .findAllByTeacherIdAndSemesterAndAcademicYearAndDeletedFalse(teacherId, semester, academicYear);
+        }
+        return enrichScheduleResponses(schedules);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getByClassGroup(Long classGroupId, String semester, String academicYear) {
-        return enrichScheduleResponses(classScheduleRepository.findAll());
+        if (classGroupId == null) return Collections.emptyList();
+        // Lấy tất cả sinh viên trong class group -> lấy enrollments -> lấy subjectClassIds -> lấy schedules
+        List<Long> studentIds = studentRepository.findAllByDeletedFalse().stream()
+                .filter(s -> classGroupId.equals(s.getClassGroupId()))
+                .map(com.toan.university_management.entity.masterdata.Student::getId)
+                .collect(Collectors.toList());
+        if (studentIds.isEmpty()) return Collections.emptyList();
+
+        Set<Long> subjectClassIds = studentIds.stream()
+                .flatMap(sid -> enrollmentRepository.findAllByStudentIdAndDeletedFalse(sid).stream())
+                .map(Enrollment::getSubjectClassId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (subjectClassIds.isEmpty()) return Collections.emptyList();
+
+        List<ClassSchedule> schedules = classScheduleRepository
+                .findBySubjectClassIdsAndFilters(subjectClassIds, semester, academicYear);
+        return enrichScheduleResponses(schedules);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getBySubject(Long subjectId, String semester, String academicYear) {
-        return enrichScheduleResponses(classScheduleRepository.findAll());
+        if (subjectId == null) return Collections.emptyList();
+        // Lấy subjectClassIds theo subjectId -> lấy schedules
+        Set<Long> subjectClassIds = subjectClassRepository.findAllByDeletedFalse().stream()
+                .filter(sc -> subjectId.equals(sc.getSubjectId()))
+                .map(com.toan.university_management.entity.masterdata.SubjectClass::getId)
+                .collect(Collectors.toSet());
+        if (subjectClassIds.isEmpty()) return Collections.emptyList();
+
+        List<ClassSchedule> schedules = classScheduleRepository
+                .findBySubjectClassIdsAndFilters(subjectClassIds, semester, academicYear);
+        return enrichScheduleResponses(schedules);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ClassScheduleResponse> getByStudent(Long studentId, String semester, String academicYear) {
-        return enrichScheduleResponses(classScheduleRepository.findAll());
+        if (studentId == null) return Collections.emptyList();
+        List<Enrollment> enrollments = enrollmentRepository.findAllByStudentIdAndDeletedFalse(studentId);
+        Set<Long> subjectClassIds = enrollments.stream()
+                .map(Enrollment::getSubjectClassId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (subjectClassIds.isEmpty()) return Collections.emptyList();
+
+        List<ClassSchedule> schedules = classScheduleRepository
+                .findBySubjectClassIdsAndFilters(subjectClassIds, semester, academicYear);
+        return enrichScheduleResponses(schedules);
     }
 
     private ClassScheduleResponse enrichScheduleResponse(ClassSchedule schedule) {

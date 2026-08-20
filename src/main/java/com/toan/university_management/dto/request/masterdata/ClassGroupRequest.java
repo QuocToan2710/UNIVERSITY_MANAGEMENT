@@ -15,4 +15,5 @@ public class ClassGroupRequest {
     Long majorId;
     String academicYear;
     Long homeroomTeacherId;
+    Integer maxStudents;
 }

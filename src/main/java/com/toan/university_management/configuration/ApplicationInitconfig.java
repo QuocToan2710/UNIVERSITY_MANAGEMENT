@@ -16,9 +16,13 @@ public class ApplicationInitconfig {
 
     PasswordEncoder passwordEncoder;
     AdminInitializer adminInitializer;
+    AdministrativeInitializer administrativeInitializer;
 
     @Bean
     ApplicationRunner applicationRunner(){
-        return args -> adminInitializer.initAdmin(passwordEncoder);
+        return args -> {
+            adminInitializer.initAdmin(passwordEncoder);
+            administrativeInitializer.initAdministrativeData();
+        };
     }
 }

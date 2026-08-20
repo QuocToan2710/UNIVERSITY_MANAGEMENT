@@ -18,7 +18,7 @@ import java.util.Date;
 @Entity
 @Table(name = "student", 
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_student_code_deleted", columnNames = {"student_code", "deleted"})
+        @UniqueConstraint(name = "uk_student_code_deleted", columnNames = {"student_code", "deleted_key"})
     },
     indexes = {
         @Index(name = "idx_student_class_group", columnList = "class_group_id"),
@@ -26,7 +26,7 @@ import java.util.Date;
         @Index(name = "idx_student_user", columnList = "user_id")
     }
 )
-@SQLDelete(sql = "UPDATE student SET deleted = true WHERE id = ?")
+@SQLDelete(sql = "UPDATE student SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class Student {
 
@@ -56,6 +56,18 @@ public class Student {
     @Column(name = "address")
     String address;
 
+    @Column(name = "province_id")
+    Long provinceId;
+
+    @Column(name = "district_id")
+    Long districtId;
+
+    @Column(name = "ward_id")
+    Long wardId;
+
+    @Column(name = "specific_address")
+    String specificAddress;
+
     @Column(name = "enrollment_year")
     String enrollmentYear;
 
@@ -67,6 +79,10 @@ public class Student {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
+
+    @Builder.Default
+    @Column(name = "deleted_key", nullable = false, length = 64)
+    String deletedKey = "";
 
     // --- APPLICATION-LEVEL LOGICAL KEYS ---
     @Column(name = "class_group_id")

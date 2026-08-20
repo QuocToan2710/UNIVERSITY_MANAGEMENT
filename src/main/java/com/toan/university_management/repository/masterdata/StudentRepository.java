@@ -19,6 +19,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     Optional<Student> findByUserIdAndDeletedFalse(String userId);
     boolean existsByStudentCodeAndDeletedFalse(String studentCode);
     boolean existsByIdAndDeletedFalse(Long id);
+    long countByClassGroupIdAndDeletedFalse(Long classGroupId);
+
+    @Query("SELECT s.classGroupId, COUNT(s) FROM Student s WHERE s.deleted = false AND s.classGroupId IS NOT NULL GROUP BY s.classGroupId")
+    List<Object[]> countStudentsGroupedByClassGroup();
 
     @Query("SELECT new com.toan.university_management.dto.reports.StudentReportDTO(CAST(s.id AS string), s.studentCode, s.fullName, s.dob, s.gender, s.phoneNumber, s.email, s.address) FROM Student s WHERE s.deleted = false")
     List<StudentReportDTO> getAllStudentForReport();

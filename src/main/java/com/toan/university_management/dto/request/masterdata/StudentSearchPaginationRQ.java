@@ -20,4 +20,7 @@ public class StudentSearchPaginationRQ {
     private String email;
     private Long majorId;
     private Long classGroupId;
+    private Long provinceId;
+    private Long districtId;
+    private Long wardId;
 }

@@ -15,6 +15,11 @@ public class TeacherRequest {
     String email;
     String phoneNumber;
     String degree;
+    String address;
+    Long provinceId;
+    Long districtId;
+    Long wardId;
+    String specificAddress;
     Long departmentId;
     String userId;
 }
