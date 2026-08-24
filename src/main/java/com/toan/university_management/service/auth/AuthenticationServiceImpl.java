@@ -184,10 +184,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             JWSVerifier verifier = new MACVerifier(getSignerKeyBytes());
             SignedJWT signedJWT = SignedJWT.parse(token);
 
-            Date expityTime = (isRefresh)
-                    ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
-                    .toInstant().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli())
-                    : signedJWT.getJWTClaimsSet().getExpirationTime();
+            Date issueTime = signedJWT.getJWTClaimsSet().getIssueTime();
+            Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+            Date expityTime;
+            if (Boolean.TRUE.equals(isRefresh)) {
+                if (issueTime == null) {
+                    throw new AppException(ErrorCode.UNAUTHENTICATED);
+                }
+                expityTime = new Date(issueTime.toInstant().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli());
+            } else {
+                expityTime = expirationTime;
+            }
+
+            if (expityTime == null) {
+                throw new AppException(ErrorCode.UNAUTHENTICATED);
+            }
 
             var verified = signedJWT.verify(verifier);
             if (!(verified && expityTime.after(new Date())))

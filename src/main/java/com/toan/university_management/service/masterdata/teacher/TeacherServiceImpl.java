@@ -88,10 +88,10 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public void deleteTeacher(Long id) {
-        if (!teacherRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        }
-        teacherRepository.deleteById(id);
+        Teacher teacher = teacherRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        teacher.setDeleted(true);
+        teacherRepository.save(teacher);
     }
 
     @Override

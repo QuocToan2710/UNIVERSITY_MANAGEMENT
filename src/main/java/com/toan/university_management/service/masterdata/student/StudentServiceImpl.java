@@ -80,7 +80,7 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public List<StudentResponse> getAllStudents() {
-        List<Student> students = studentRepository.findAll();
+        List<Student> students = studentRepository.findAllByDeletedFalse();
         return enrichStudentResponses(students);
     }
 
@@ -104,6 +104,12 @@ public class StudentServiceImpl implements StudentService {
             }
         }
 
+        if (request.getMajorId() != null) {
+            if (!majorRepository.existsByIdAndDeletedFalse(request.getMajorId())) {
+                throw new AppException(ErrorCode.MAJOR_NOT_FOUND);
+            }
+        }
+
         if (request.getStatus() != null) {
             student.setStatus(request.getStatus());
         }
@@ -114,10 +120,10 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public void deleteStudent(Long id) {
-        if (!studentRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
-        }
-        studentRepository.deleteById(id);
+        Student student = studentRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
+        student.setDeleted(true);
+        studentRepository.save(student);
     }
 
     @Override

@@ -105,10 +105,10 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
 
     @Override
     public void deleteExamSchedule(Long id) {
-        if (!examScheduleRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.SCHEDULE_NOT_FOUND);
-        }
-        examScheduleRepository.deleteById(id);
+        ExamSchedule examSchedule = examScheduleRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+        examSchedule.setDeleted(true);
+        examScheduleRepository.save(examSchedule);
     }
 
     private ExamScheduleResponse enrichResponse(ExamSchedule item) {

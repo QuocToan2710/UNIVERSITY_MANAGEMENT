@@ -20,5 +20,11 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     List<User> findAllByDeletedFalse();
 
+    Page<User> findAllByDeletedFalse(Pageable pageable);
+
+    Optional<User> findByIdAndDeletedFalse(String id);
+
+    boolean existsByIdAndDeletedFalse(String id);
+
     List<User> findAllByIdIn(Collection<String> ids);
 }

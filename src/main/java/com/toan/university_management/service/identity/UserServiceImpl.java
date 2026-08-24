@@ -84,27 +84,30 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserById(String id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return enrichUserResponse(user);
     }
 
     @Override
     public List<UserResponse> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllByDeletedFalse();
         return enrichUserResponses(users);
     }
 
     @Override
     public Page<UserResponse> getAllUsers(Pageable pageable) {
-        Page<User> userPage = userRepository.findAll(pageable);
+        Page<User> userPage = userRepository.findAllByDeletedFalse(pageable);
         List<UserResponse> content = enrichUserResponses(userPage.getContent());
         return new org.springframework.data.domain.PageImpl<>(content, pageable, userPage.getTotalElements());
     }
 
     @Override
     public UserResponse updateUser(UserRequest request) {
-        User user = userRepository.findById(request.getId())
+        if (request.getId() == null || request.getId().isBlank()) {
+            throw new AppException(ErrorCode.INVALID_KEY);
+        }
+        User user = userRepository.findByIdAndDeletedFalse(request.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         userMapper.updateUser(user, request);
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -125,16 +128,16 @@ public class UserServiceImpl implements UserService {
                     throw new AppException(ErrorCode.UNAUTHORIZED);
                 }
             }
-
-            final String targetUserId = user.getId();
-            userRoleRepository.deleteByUserId(targetUserId);
-            for (String rKey : request.getRoles()) {
-                resolveRole(rKey).ifPresent(role -> {
-                    userRoleRepository.save(UserRole.builder()
-                            .userId(targetUserId)
-                            .roleId(role.getId())
-                            .build());
-                });
+            userRoleRepository.deleteByUserId(user.getId());
+            for (String roleKey : request.getRoles()) {
+                Optional<Role> roleOpt = resolveRole(roleKey);
+                if (roleOpt.isPresent()) {
+                    UserRole userRole = UserRole.builder()
+                            .userId(user.getId())
+                            .roleId(roleOpt.get().getId())
+                            .build();
+                    userRoleRepository.save(userRole);
+                }
             }
         }
 
@@ -165,7 +168,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
-        String name = context.getAuthentication().getName();
+        var authentication = context.getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        String name = authentication.getName();
 
         User user = userRepository.findByUsername(name)
                 .or(() -> userRepository.findByUsernameIgnoreCase(name))
@@ -175,11 +182,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(String id) {
-        if (!userRepository.existsById(id)) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        }
-        userRoleRepository.deleteByUserId(id);
-        userRepository.deleteById(id);
+        User user = userRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        user.setDeleted(true);
+        userRepository.save(user);
     }
 
     private Optional<Role> resolveRole(String roleKey) {

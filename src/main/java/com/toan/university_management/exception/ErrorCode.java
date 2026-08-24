@@ -39,6 +39,7 @@ public enum ErrorCode {
     ENROLLMENT_NOT_FOUND(2012, "Enrollment record not found", HttpStatus.NOT_FOUND),
     ENROLLMENT_ALREADY_EXISTS(2013, "Student is already enrolled in this subject class", HttpStatus.BAD_REQUEST),
     SUBJECT_CLASS_NOT_FOUND(2014, "Subject class not found", HttpStatus.NOT_FOUND),
+    SUBJECT_CLASS_EXISTED(2014, "Subject class exited", HttpStatus.NOT_FOUND),
     PROVINCE_NOT_FOUND(2015, "Province not found", HttpStatus.NOT_FOUND),
     DISTRICT_NOT_FOUND(2016, "District not found", HttpStatus.NOT_FOUND),
     WARD_NOT_FOUND(2017, "Ward not found", HttpStatus.NOT_FOUND),

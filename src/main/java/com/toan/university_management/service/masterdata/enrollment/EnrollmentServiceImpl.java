@@ -154,10 +154,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Override
     public void deleteEnrollment(Long id) {
-        if (!enrollmentRepository.existsByIdAndDeletedFalse(id)) {
-            throw new AppException(ErrorCode.ENROLLMENT_NOT_FOUND);
-        }
-        enrollmentRepository.deleteById(id);
+        Enrollment e = enrollmentRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_FOUND));
+        e.setDeleted(true);
+        enrollmentRepository.save(e);
     }
 
     private void calculateTotalScore(Enrollment e) {
