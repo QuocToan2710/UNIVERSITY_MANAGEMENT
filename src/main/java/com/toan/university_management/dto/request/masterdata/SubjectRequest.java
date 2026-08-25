@@ -13,6 +13,12 @@ public class SubjectRequest {
     String subjectCode;
     String name;
     int credit;
+    @Builder.Default
+    int attendanceCoeff = 1;
+    @Builder.Default
+    int midtermCoeff = 3;
+    @Builder.Default
+    int finalCoeff = 6;
     Long departmentId;
     String description;
 }

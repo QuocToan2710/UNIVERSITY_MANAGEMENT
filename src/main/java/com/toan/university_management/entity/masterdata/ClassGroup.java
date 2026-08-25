@@ -1,8 +1,10 @@
 package com.toan.university_management.entity.masterdata;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -10,7 +12,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "class_group", 
@@ -24,12 +26,7 @@ import org.hibernate.annotations.SQLRestriction;
 )
 @SQLDelete(sql = "UPDATE class_group SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class ClassGroup {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class ClassGroup extends BaseEntity {
 
     @Column(name = "class_code", nullable = false)
     String classCode;

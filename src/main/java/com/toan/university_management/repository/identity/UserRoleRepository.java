@@ -7,17 +7,17 @@ import java.util.Collection;
 import java.util.List;
 
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
-    List<UserRole> findByUserId(String userId);
+    List<UserRole> findByUserId(Long userId);
 
-    List<UserRole> findByUserIdIn(Collection<String> userIds);
+    List<UserRole> findByUserIdIn(Collection<Long> userIds);
 
     List<UserRole> findByRoleId(Long roleId);
 
-    boolean existsByUserIdAndRoleId(String userId, Long roleId);
+    boolean existsByUserIdAndRoleId(Long userId, Long roleId);
 
-    void deleteByUserId(String userId);
+    void deleteByUserId(Long userId);
 
     void deleteByRoleId(Long roleId);
 
-    void deleteByUserIdAndRoleId(String userId, Long roleId);
+    void deleteByUserIdAndRoleId(Long userId, Long roleId);
 }

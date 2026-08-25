@@ -18,6 +18,12 @@ import com.toan.university_management.repository.masterdata.MajorRepository;
 import com.toan.university_management.repository.masterdata.ProvinceRepository;
 import com.toan.university_management.repository.masterdata.StudentRepository;
 import com.toan.university_management.repository.masterdata.WardRepository;
+import com.toan.university_management.entity.identity.User;
+import com.toan.university_management.entity.identity.UserRole;
+import com.toan.university_management.repository.identity.RoleRepository;
+import com.toan.university_management.repository.identity.UserRepository;
+import com.toan.university_management.repository.identity.UserRoleRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,8 +51,14 @@ public class StudentServiceImpl implements StudentService {
     DistrictRepository districtRepository;
     WardRepository wardRepository;
     StudentMapper studentMapper;
+    UserRepository userRepository;
+    UserRoleRepository userRoleRepository;
+    RoleRepository roleRepository;
+    PasswordEncoder passwordEncoder;
+    com.toan.university_management.service.email.EmailService emailService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public StudentResponse createStudent(StudentRequest request) {
         if (studentRepository.existsByStudentCodeAndDeletedFalse(request.getStudentCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -67,8 +79,51 @@ public class StudentServiceImpl implements StudentService {
             student.setStatus(StudentStatus.ACTIVE);
         }
 
-        student = studentRepository.save(student);
-        return enrichStudentResponse(student);
+        // Đảm bảo Email luôn được gán chính xác từ hồ sơ sinh viên
+        String email = (student.getEmail() != null && !student.getEmail().isBlank())
+                ? student.getEmail().trim()
+                : student.getStudentCode().toLowerCase() + "@university.edu.vn";
+        student.setEmail(email);
+
+        if (student.getUserId() == null) {
+            var userOpt = userRepository.findByUsername(student.getStudentCode())
+                    .or(() -> userRepository.findByEmail(email));
+
+            if (userOpt.isPresent()) {
+                student.setUserId(userOpt.get().getId());
+            } else {
+                // Tự động cấp tài khoản đăng nhập cho sinh viên
+                String rawPassword = student.getStudentCode() + "@123";
+
+                User newUser = User.builder()
+                        .username(student.getStudentCode())
+                        .password(passwordEncoder.encode(rawPassword))
+                        .email(email)
+                        .fullName(student.getFullName())
+                        .userCode(student.getStudentCode())
+                        .build();
+                newUser = userRepository.save(newUser);
+
+                final Long newUserId = newUser.getId();
+                roleRepository.findByRoleCode("ROLE_STUDENT")
+                        .or(() -> roleRepository.findByName("STUDENT"))
+                        .ifPresent(role -> {
+                            userRoleRepository.save(UserRole.builder()
+                                    .userId(newUserId)
+                                    .roleId(role.getId())
+                                    .build());
+                        });
+
+                student.setUserId(newUserId);
+                log.info("Auto-created User account for student {}: email={}, username={}, defaultPassword={}", student.getStudentCode(), email, student.getStudentCode(), rawPassword);
+
+                // Gửi email thông báo tài khoản & mật khẩu ban đầu
+                emailService.sendAccountCreatedEmail(email, student.getFullName(), student.getStudentCode(), rawPassword, "ROLE_STUDENT");
+            }
+        }
+
+        Student savedStudent = studentRepository.save(student);
+        return enrichStudentResponse(savedStudent);
     }
 
     @Override
@@ -92,6 +147,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public StudentResponse updateStudent(Long id, StudentRequest request) {
         Student student = studentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
@@ -114,15 +170,37 @@ public class StudentServiceImpl implements StudentService {
             student.setStatus(request.getStatus());
         }
 
+        // Đồng bộ email và họ tên sang tài khoản User nếu có
+        if (student.getUserId() != null) {
+            final String updatedEmail = student.getEmail();
+            final String updatedName = student.getFullName();
+            userRepository.findByIdAndDeletedFalse(student.getUserId()).ifPresent(u -> {
+                if (updatedEmail != null && !updatedEmail.isBlank()) {
+                    u.setEmail(updatedEmail.trim());
+                }
+                if (updatedName != null && !updatedName.isBlank()) {
+                    u.setFullName(updatedName);
+                }
+                userRepository.save(u);
+            });
+        }
+
         student = studentRepository.save(student);
         return enrichStudentResponse(student);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteStudent(Long id) {
         Student student = studentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
         student.setDeleted(true);
+        if (student.getUserId() != null) {
+            userRepository.findByIdAndDeletedFalse(student.getUserId()).ifPresent(u -> {
+                u.setDeleted(true);
+                userRepository.save(u);
+            });
+        }
         studentRepository.save(student);
     }
 
@@ -172,18 +250,7 @@ public class StudentServiceImpl implements StudentService {
                 })
                 .toList();
 
-        long count = all.size();
-        int start = page * size;
-        List<StudentResponse> pageList = start < count ? all.subList(start, Math.min(start + size, (int) count)) : List.of();
-
-        int totalPage = (int) (count / size);
-        if (count % size != 0) totalPage++;
-
-        com.toan.university_management.dto.response.BasePaginationRS<StudentResponse> outputs = new com.toan.university_management.dto.response.BasePaginationRS<>();
-        outputs.setItems(pageList);
-        outputs.setTotalCount(count);
-        outputs.setTotalPage(totalPage);
-        return outputs;
+        return com.toan.university_management.common.util.PaginationUtils.paginateList(all, page, size);
     }
 
     @Override
@@ -225,7 +292,8 @@ public class StudentServiceImpl implements StudentService {
         if ((response.getSpecificAddress() == null || response.getSpecificAddress().isBlank()) && student.getAddress() != null && !student.getAddress().isBlank()) {
             response.setSpecificAddress(student.getAddress());
         }
-        response.setFullAddress(buildFullAddress(response.getSpecificAddress(), response.getWardName(), response.getDistrictName(), response.getProvinceName(), response.getAddress()));
+        response.setFullAddress(com.toan.university_management.common.util.AddressUtils.buildFullAddress(
+                response.getSpecificAddress(), response.getWardName(), response.getDistrictName(), response.getProvinceName(), response.getAddress()));
         return response;
     }
 
@@ -294,20 +362,9 @@ public class StudentServiceImpl implements StudentService {
             if ((res.getSpecificAddress() == null || res.getSpecificAddress().isBlank()) && s.getAddress() != null && !s.getAddress().isBlank()) {
                 res.setSpecificAddress(s.getAddress());
             }
-            res.setFullAddress(buildFullAddress(res.getSpecificAddress(), res.getWardName(), res.getDistrictName(), res.getProvinceName(), res.getAddress()));
+            res.setFullAddress(com.toan.university_management.common.util.AddressUtils.buildFullAddress(
+                    res.getSpecificAddress(), res.getWardName(), res.getDistrictName(), res.getProvinceName(), res.getAddress()));
             return res;
         }).toList();
-    }
-
-    private String buildFullAddress(String specificAddress, String wardName, String districtName, String provinceName, String fallbackAddress) {
-        List<String> parts = new ArrayList<>();
-        if (specificAddress != null && !specificAddress.isBlank()) parts.add(specificAddress.trim());
-        if (wardName != null && !wardName.isBlank()) parts.add(wardName.trim());
-        if (districtName != null && !districtName.isBlank()) parts.add(districtName.trim());
-        if (provinceName != null && !provinceName.isBlank()) parts.add(provinceName.trim());
-        if (!parts.isEmpty()) {
-            return String.join(", ", parts);
-        }
-        return fallbackAddress != null ? fallbackAddress : "";
     }
 }

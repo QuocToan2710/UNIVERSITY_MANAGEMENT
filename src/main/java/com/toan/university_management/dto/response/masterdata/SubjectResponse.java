@@ -14,6 +14,9 @@ public class SubjectResponse {
     String subjectCode;
     String name;
     int credit;
+    int attendanceCoeff;
+    int midtermCoeff;
+    int finalCoeff;
     String description;
 
     @JsonProperty("courseCode")

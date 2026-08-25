@@ -1,8 +1,10 @@
 package com.toan.university_management.entity.masterdata;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -10,7 +12,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "teacher",
@@ -23,12 +25,7 @@ import org.hibernate.annotations.SQLRestriction;
 )
 @SQLDelete(sql = "UPDATE teacher SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class Teacher {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class Teacher extends BaseEntity {
 
     @Column(name = "teacher_code", nullable = false)
     String teacherCode;
@@ -60,12 +57,6 @@ public class Teacher {
     @Column(name = "specific_address")
     String specificAddress;
 
-    @Column(name = "department_id")
-    Long departmentId;
-
-    @Column(name = "user_id")
-    String userId;
-
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     boolean deleted = false;
@@ -73,4 +64,10 @@ public class Teacher {
     @Builder.Default
     @Column(name = "deleted_key", nullable = false, length = 64)
     String deletedKey = "";
+
+    @Column(name = "department_id")
+    Long departmentId;
+
+    @Column(name = "user_id")
+    Long userId;
 }

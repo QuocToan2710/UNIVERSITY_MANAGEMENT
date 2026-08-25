@@ -1,8 +1,10 @@
 package com.toan.university_management.entity.identity;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -10,20 +12,15 @@ import org.hibernate.annotations.SQLRestriction;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "user", uniqueConstraints = {
     @UniqueConstraint(name = "uk_user_username_deleted", columnNames = {"username", "deleted_key"})
 })
-@SQLDelete(sql = "UPDATE user SET deleted = true, deleted_key = id WHERE id = ?")
+@SQLDelete(sql = "UPDATE user SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    String id;
+public class User extends BaseEntity {
 
     @Column(name = "user_code")
     String userCode;

@@ -1,9 +1,11 @@
 package com.toan.university_management.entity.masterdata;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import com.toan.university_management.enums.StudentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -13,7 +15,7 @@ import java.util.Date;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "student", 
@@ -28,12 +30,7 @@ import java.util.Date;
 )
 @SQLDelete(sql = "UPDATE student SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class Student {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class Student extends BaseEntity {
 
     @Column(name = "student_code", nullable = false)
     String studentCode;
@@ -92,5 +89,5 @@ public class Student {
     Long majorId;
 
     @Column(name = "user_id")
-    String userId;
+    Long userId;
 }

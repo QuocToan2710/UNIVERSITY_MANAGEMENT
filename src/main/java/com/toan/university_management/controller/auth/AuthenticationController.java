@@ -66,6 +66,23 @@ public class AuthenticationController {
                 .build();
     }
 
+    @PermissionMeta(value = "Yêu cầu khôi phục mật khẩu qua Email", isPublic = true)
+    @PostMapping("/forgot-password")
+    ApiResponse<String> forgotPassword(@RequestBody @jakarta.validation.Valid com.toan.university_management.dto.request.auth.ForgotPasswordRequest request) {
+        authenticationService.forgotPassword(request);
+        return ApiResponse.<String>builder()
+                .result("Mã xác nhận OTP đã được gửi đến địa chỉ email của bạn.")
+                .build();
+    }
+
+    @PermissionMeta(value = "Xác nhận OTP và đặt lại mật khẩu", isPublic = true)
+    @PostMapping("/reset-password")
+    ApiResponse<String> resetPassword(@RequestBody @jakarta.validation.Valid com.toan.university_management.dto.request.auth.ResetPasswordRequest request) {
+        authenticationService.resetPassword(request);
+        return ApiResponse.<String>builder()
+                .result("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.")
+                .build();
+    }
 }
 
 

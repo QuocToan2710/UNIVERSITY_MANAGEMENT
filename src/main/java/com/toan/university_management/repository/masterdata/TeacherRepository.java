@@ -1,19 +1,13 @@
 package com.toan.university_management.repository.masterdata;
 
+import com.toan.university_management.common.repository.BaseRepository;
 import com.toan.university_management.entity.masterdata.Teacher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
-public interface TeacherRepository extends JpaRepository<Teacher, Long> {
-    Optional<Teacher> findByIdAndDeletedFalse(Long id);
-    Page<Teacher> findAllByDeletedFalse(Pageable pageable);
-    List<Teacher> findAllByDeletedFalse();
-    List<Teacher> findAllByIdInAndDeletedFalse(Collection<Long> ids);
+public interface TeacherRepository extends BaseRepository<Teacher, Long> {
+    Optional<Teacher> findByUserIdAndDeletedFalse(Long userId);
+    Optional<Teacher> findByTeacherCodeAndDeletedFalse(String teacherCode);
+    Optional<Teacher> findByEmailAndDeletedFalse(String email);
     boolean existsByTeacherCodeAndDeletedFalse(String teacherCode);
-    boolean existsByIdAndDeletedFalse(Long id);
 }

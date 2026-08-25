@@ -78,9 +78,13 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
     public List<ExamScheduleResponse> getMyExamSchedules() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
-                .flatMap(u -> studentRepository.findByUserIdAndDeletedFalse(u.getId()))
+                .or(() -> userRepository.findByUsernameIgnoreCase(username))
+                .or(() -> userRepository.findByEmail(username))
+                .flatMap(u -> studentRepository.findByUserIdAndDeletedFalse(u.getId())
+                        .or(() -> studentRepository.findByStudentCodeAndDeletedFalse(u.getUsername()))
+                        .or(() -> (u.getUserCode() != null && !u.getUserCode().isBlank()) ? studentRepository.findByStudentCodeAndDeletedFalse(u.getUserCode()) : Optional.empty())
+                        .or(() -> (u.getEmail() != null && !u.getEmail().isBlank()) ? studentRepository.findByEmailAndDeletedFalse(u.getEmail()) : Optional.empty()))
                 .map(student -> {
-                    // Lấy danh sách subjectClassId từ enrollment của student
                     Set<Long> subjectClassIds = enrollmentRepository
                             .findAllByStudentIdAndDeletedFalse(student.getId())
                             .stream()

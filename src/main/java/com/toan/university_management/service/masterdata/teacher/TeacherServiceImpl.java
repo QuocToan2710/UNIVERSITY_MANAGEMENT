@@ -15,6 +15,12 @@ import com.toan.university_management.repository.masterdata.DistrictRepository;
 import com.toan.university_management.repository.masterdata.ProvinceRepository;
 import com.toan.university_management.repository.masterdata.TeacherRepository;
 import com.toan.university_management.repository.masterdata.WardRepository;
+import com.toan.university_management.entity.identity.User;
+import com.toan.university_management.entity.identity.UserRole;
+import com.toan.university_management.repository.identity.RoleRepository;
+import com.toan.university_management.repository.identity.UserRepository;
+import com.toan.university_management.repository.identity.UserRoleRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -41,8 +47,14 @@ public class TeacherServiceImpl implements TeacherService {
     DistrictRepository districtRepository;
     WardRepository wardRepository;
     TeacherMapper teacherMapper;
+    UserRepository userRepository;
+    UserRoleRepository userRoleRepository;
+    RoleRepository roleRepository;
+    PasswordEncoder passwordEncoder;
+    com.toan.university_management.service.email.EmailService emailService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public TeacherResponse createTeacher(TeacherRequest request) {
         if (teacherRepository.existsByTeacherCodeAndDeletedFalse(request.getTeacherCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -51,6 +63,50 @@ public class TeacherServiceImpl implements TeacherService {
             throw new AppException(ErrorCode.DEPARTMENT_NOT_FOUND);
         }
         Teacher teacher = teacherMapper.toTeacher(request);
+
+        // Đảm bảo Email luôn được gán chính xác từ hồ sơ giảng viên
+        String email = (teacher.getEmail() != null && !teacher.getEmail().isBlank())
+                ? teacher.getEmail().trim()
+                : teacher.getTeacherCode().toLowerCase() + "@university.edu.vn";
+        teacher.setEmail(email);
+
+        if (teacher.getUserId() == null) {
+            var userOpt = userRepository.findByUsername(teacher.getTeacherCode())
+                    .or(() -> userRepository.findByEmail(email));
+
+            if (userOpt.isPresent()) {
+                teacher.setUserId(userOpt.get().getId());
+            } else {
+                // Tự động cấp tài khoản đăng nhập cho giảng viên
+                String rawPassword = teacher.getTeacherCode() + "@123";
+
+                User newUser = User.builder()
+                        .username(teacher.getTeacherCode())
+                        .password(passwordEncoder.encode(rawPassword))
+                        .email(email)
+                        .fullName(teacher.getFullName())
+                        .userCode(teacher.getTeacherCode())
+                        .build();
+                newUser = userRepository.save(newUser);
+
+                final Long newUserId = newUser.getId();
+                roleRepository.findByRoleCode("ROLE_TEACHER")
+                        .or(() -> roleRepository.findByName("TEACHER"))
+                        .ifPresent(role -> {
+                            userRoleRepository.save(UserRole.builder()
+                                    .userId(newUserId)
+                                    .roleId(role.getId())
+                                    .build());
+                        });
+
+                teacher.setUserId(newUserId);
+                log.info("Auto-created User account for teacher {}: email={}, username={}, defaultPassword={}", teacher.getTeacherCode(), email, teacher.getTeacherCode(), rawPassword);
+
+                // Gửi email thông báo tài khoản & mật khẩu ban đầu
+                emailService.sendAccountCreatedEmail(email, teacher.getFullName(), teacher.getTeacherCode(), rawPassword, "ROLE_TEACHER");
+            }
+        }
+
         teacher = teacherRepository.save(teacher);
         return enrichResponse(teacher);
     }
@@ -75,6 +131,7 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public TeacherResponse updateTeacher(Long id, TeacherRequest request) {
         Teacher teacher = teacherRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TEACHER_NOT_FOUND));
@@ -82,15 +139,38 @@ public class TeacherServiceImpl implements TeacherService {
             throw new AppException(ErrorCode.DEPARTMENT_NOT_FOUND);
         }
         teacherMapper.updateTeacher(teacher, request);
+
+        // Đồng bộ email và họ tên sang tài khoản User nếu có
+        if (teacher.getUserId() != null) {
+            final String updatedEmail = teacher.getEmail();
+            final String updatedName = teacher.getFullName();
+            userRepository.findByIdAndDeletedFalse(teacher.getUserId()).ifPresent(u -> {
+                if (updatedEmail != null && !updatedEmail.isBlank()) {
+                    u.setEmail(updatedEmail.trim());
+                }
+                if (updatedName != null && !updatedName.isBlank()) {
+                    u.setFullName(updatedName);
+                }
+                userRepository.save(u);
+            });
+        }
+
         teacher = teacherRepository.save(teacher);
         return enrichResponse(teacher);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteTeacher(Long id) {
         Teacher teacher = teacherRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.TEACHER_NOT_FOUND));
         teacher.setDeleted(true);
+        if (teacher.getUserId() != null) {
+            userRepository.findByIdAndDeletedFalse(teacher.getUserId()).ifPresent(u -> {
+                u.setDeleted(true);
+                userRepository.save(u);
+            });
+        }
         teacherRepository.save(teacher);
     }
 
@@ -133,16 +213,7 @@ public class TeacherServiceImpl implements TeacherService {
                     return true;
                 })
                 .toList();
-
-        int total = all.size();
-        int from = Math.min(page * size, total);
-        int to = Math.min(from + size, total);
-
-        return com.toan.university_management.dto.response.BasePaginationRS.<TeacherResponse>builder()
-                .items(all.subList(from, to))
-                .totalCount(total)
-                .totalPage((int) Math.ceil((double) total / size))
-                .build();
+        return com.toan.university_management.common.util.PaginationUtils.paginateList(all, page, size);
     }
 
     @Override
@@ -163,50 +234,75 @@ public class TeacherServiceImpl implements TeacherService {
                 .pageNumber(0)
                 .pageSize(Integer.MAX_VALUE)
                 .build()
-                : com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ.builder().pageNumber(0).pageSize(Integer.MAX_VALUE).build();
+                : com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ.builder()
+                .pageNumber(0)
+                .pageSize(Integer.MAX_VALUE)
+                .build();
         return search(copy).getItems();
     }
 
     private TeacherResponse enrichResponse(Teacher teacher) {
-        TeacherResponse res = teacherMapper.toTeacherResponse(teacher);
+        TeacherResponse response = teacherMapper.toTeacherResponse(teacher);
         if (teacher.getDepartmentId() != null) {
             departmentRepository.findByIdAndDeletedFalse(teacher.getDepartmentId()).ifPresent(d -> {
-                res.setDepartmentName(d.getName());
+                response.setDepartmentName(d.getName());
             });
         }
         if (teacher.getProvinceId() != null) {
             provinceRepository.findByIdAndDeletedFalse(teacher.getProvinceId()).ifPresent(p -> {
-                res.setProvinceName(p.getProvinceName());
+                response.setProvinceName(p.getProvinceName());
             });
         }
         if (teacher.getDistrictId() != null) {
             districtRepository.findByIdAndDeletedFalse(teacher.getDistrictId()).ifPresent(d -> {
-                res.setDistrictName(d.getDistrictName());
+                response.setDistrictName(d.getDistrictName());
             });
         }
         if (teacher.getWardId() != null) {
             wardRepository.findByIdAndDeletedFalse(teacher.getWardId()).ifPresent(w -> {
-                res.setWardName(w.getWardName());
+                response.setWardName(w.getWardName());
             });
         }
-        res.setFullAddress(buildFullAddress(res.getSpecificAddress(), res.getWardName(), res.getDistrictName(), res.getProvinceName(), res.getAddress()));
-        return res;
+        if ((response.getSpecificAddress() == null || response.getSpecificAddress().isBlank()) && teacher.getAddress() != null && !teacher.getAddress().isBlank()) {
+            response.setSpecificAddress(teacher.getAddress());
+        }
+        response.setFullAddress(com.toan.university_management.common.util.AddressUtils.buildFullAddress(
+                response.getSpecificAddress(), response.getWardName(), response.getDistrictName(), response.getProvinceName(), response.getAddress()));
+        return response;
     }
 
     private List<TeacherResponse> enrichResponses(List<Teacher> teachers) {
         if (teachers.isEmpty()) return Collections.emptyList();
 
-        Set<Long> deptIds = teachers.stream().map(Teacher::getDepartmentId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> provinceIds = teachers.stream().map(Teacher::getProvinceId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> districtIds = teachers.stream().map(Teacher::getDistrictId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Set<Long> wardIds = teachers.stream().map(Teacher::getWardId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> deptIds = teachers.stream()
+                .map(Teacher::getDepartmentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-        Map<Long, Department> deptMap = departmentRepository.findAllById(deptIds)
+        Set<Long> provinceIds = teachers.stream()
+                .map(Teacher::getProvinceId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<Long> districtIds = teachers.stream()
+                .map(Teacher::getDistrictId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<Long> wardIds = teachers.stream()
+                .map(Teacher::getWardId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, Department> deptMap = departmentRepository.findAllByIdInAndDeletedFalse(deptIds)
                 .stream().collect(Collectors.toMap(Department::getId, Function.identity()));
+
         Map<Long, Province> provinceMap = provinceRepository.findAllByIdInAndDeletedFalse(provinceIds)
                 .stream().collect(Collectors.toMap(Province::getId, Function.identity()));
+
         Map<Long, District> districtMap = districtRepository.findAllByIdInAndDeletedFalse(districtIds)
                 .stream().collect(Collectors.toMap(District::getId, Function.identity()));
+
         Map<Long, Ward> wardMap = wardRepository.findAllByIdInAndDeletedFalse(wardIds)
                 .stream().collect(Collectors.toMap(Ward::getId, Function.identity()));
 
@@ -224,20 +320,9 @@ public class TeacherServiceImpl implements TeacherService {
             if (t.getWardId() != null && wardMap.containsKey(t.getWardId())) {
                 res.setWardName(wardMap.get(t.getWardId()).getWardName());
             }
-            res.setFullAddress(buildFullAddress(res.getSpecificAddress(), res.getWardName(), res.getDistrictName(), res.getProvinceName(), res.getAddress()));
+            res.setFullAddress(com.toan.university_management.common.util.AddressUtils.buildFullAddress(
+                    res.getSpecificAddress(), res.getWardName(), res.getDistrictName(), res.getProvinceName(), res.getAddress()));
             return res;
         }).toList();
-    }
-
-    private String buildFullAddress(String specificAddress, String wardName, String districtName, String provinceName, String fallbackAddress) {
-        List<String> parts = new ArrayList<>();
-        if (specificAddress != null && !specificAddress.isBlank()) parts.add(specificAddress.trim());
-        if (wardName != null && !wardName.isBlank()) parts.add(wardName.trim());
-        if (districtName != null && !districtName.isBlank()) parts.add(districtName.trim());
-        if (provinceName != null && !provinceName.isBlank()) parts.add(provinceName.trim());
-        if (!parts.isEmpty()) {
-            return String.join(", ", parts);
-        }
-        return fallbackAddress != null ? fallbackAddress : "";
     }
 }

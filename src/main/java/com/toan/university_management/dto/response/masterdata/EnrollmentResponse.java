@@ -22,11 +22,22 @@ public class EnrollmentResponse {
     Long subjectClassId;
     String subjectClassCode;
     String subjectClassName;
+    Double attendanceScore;
     Double midtermScore;
     Double finalScore;
     Double totalScore;
+    String letterGrade;
+    Double gradePoint4;
+    com.toan.university_management.enums.GradeStatus gradeStatus;
+    String note;
+    boolean isAppealed;
     EnrollmentStatus status;
     LocalDateTime enrolledAt;
+    String subjectName;
+    String subjectCode;
+    Integer credit;
+    String semester;
+    String academicYear;
 
     @JsonProperty("courseClassId")
     public Long getCourseClassId() {

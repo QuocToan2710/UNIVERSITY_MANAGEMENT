@@ -21,5 +21,5 @@ public class TeacherRequest {
     Long wardId;
     String specificAddress;
     Long departmentId;
-    String userId;
+    Long userId;
 }

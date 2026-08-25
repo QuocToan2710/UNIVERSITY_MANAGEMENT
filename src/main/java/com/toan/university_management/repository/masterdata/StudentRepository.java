@@ -1,24 +1,18 @@
 package com.toan.university_management.repository.masterdata;
 
+import com.toan.university_management.common.repository.BaseRepository;
 import com.toan.university_management.dto.reports.StudentReportDTO;
 import com.toan.university_management.entity.masterdata.Student;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface StudentRepository extends JpaRepository<Student, Long> {
-    Optional<Student> findByIdAndDeletedFalse(Long id);
-    Page<Student> findAllByDeletedFalse(Pageable pageable);
-    List<Student> findAllByDeletedFalse();
-    List<Student> findAllByIdInAndDeletedFalse(Collection<Long> ids);
-    Optional<Student> findByUserIdAndDeletedFalse(String userId);
+public interface StudentRepository extends BaseRepository<Student, Long> {
+    Optional<Student> findByUserIdAndDeletedFalse(Long userId);
+    Optional<Student> findByStudentCodeAndDeletedFalse(String studentCode);
+    Optional<Student> findByEmailAndDeletedFalse(String email);
     boolean existsByStudentCodeAndDeletedFalse(String studentCode);
-    boolean existsByIdAndDeletedFalse(Long id);
     long countByClassGroupIdAndDeletedFalse(Long classGroupId);
 
     @Query("SELECT s.classGroupId, COUNT(s) FROM Student s WHERE s.deleted = false AND s.classGroupId IS NOT NULL GROUP BY s.classGroupId")

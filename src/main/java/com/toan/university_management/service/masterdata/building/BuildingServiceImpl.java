@@ -116,18 +116,7 @@ public class BuildingServiceImpl implements BuildingService {
                 })
                 .toList();
 
-        long count = all.size();
-        int start = page * size;
-        List<BuildingResponse> pageList = start < count ? all.subList(start, Math.min(start + size, (int) count)) : List.of();
-
-        int totalPage = (int) (count / size);
-        if (count % size != 0) totalPage++;
-
-        BasePaginationRS<BuildingResponse> outputs = new BasePaginationRS<>();
-        outputs.setItems(pageList);
-        outputs.setTotalCount(count);
-        outputs.setTotalPage(totalPage);
-        return outputs;
+        return com.toan.university_management.common.util.PaginationUtils.paginateList(all, page, size);
     }
 
     @Override

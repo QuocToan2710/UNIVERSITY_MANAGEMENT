@@ -44,7 +44,14 @@ public enum ErrorCode {
     DISTRICT_NOT_FOUND(2016, "District not found", HttpStatus.NOT_FOUND),
     WARD_NOT_FOUND(2017, "Ward not found", HttpStatus.NOT_FOUND),
     ENROLLMENT_CAPACITY_FULL(2018, "Subject class has reached maximum student capacity", HttpStatus.BAD_REQUEST),
-    ENROLLMENT_SCHEDULE_CONFLICT(2019, "Student already has a class scheduled at this time", HttpStatus.CONFLICT)
+    ENROLLMENT_SCHEDULE_CONFLICT(2019, "Student already has a class scheduled at this time", HttpStatus.CONFLICT),
+    GRADE_LOCKED(2020, "Grades for this class have been locked and cannot be modified", HttpStatus.BAD_REQUEST),
+    GRADE_INVALID_SCORE(2021, "Score must be between 0.0 and 10.0", HttpStatus.BAD_REQUEST),
+    GRADE_NOT_SUBMITTED(2022, "Grades must be submitted before publishing", HttpStatus.BAD_REQUEST),
+    EMAIL_NOT_FOUND(1018, "Email not found in system", HttpStatus.NOT_FOUND),
+    OTP_INVALID(1019, "Invalid OTP code", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED(1020, "OTP code has expired", HttpStatus.BAD_REQUEST),
+    EMAIL_SEND_FAILED(1021, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR)
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

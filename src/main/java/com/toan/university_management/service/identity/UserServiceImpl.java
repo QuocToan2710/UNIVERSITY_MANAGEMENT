@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        final String createdUserId = user.getId();
+        final Long createdUserId = user.getId();
         for (String rKey : roleCodes) {
             resolveRole(rKey).ifPresent(role -> {
                 userRoleRepository.save(UserRole.builder()
@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getUserById(String id) {
+    public UserResponse getUserById(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return enrichUserResponse(user);
@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse updateUser(UserRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (request.getId() == null) {
             throw new AppException(ErrorCode.INVALID_KEY);
         }
         User user = userRepository.findByIdAndDeletedFalse(request.getId())
@@ -145,11 +145,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse updateUserRoles(String id, List<String> roleNames) {
+    public UserResponse updateUserRoles(Long id, List<String> roleNames) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        final String targetUserId = user.getId();
+        final Long targetUserId = user.getId();
         userRoleRepository.deleteByUserId(targetUserId);
         if (roleNames != null) {
             for (String rKey : roleNames) {
@@ -181,7 +181,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(String id) {
+    public void deleteUser(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         user.setDeleted(true);
@@ -223,14 +223,14 @@ public class UserServiceImpl implements UserService {
 
     private List<UserResponse> enrichUserResponses(List<User> users) {
         if (users.isEmpty()) return Collections.emptyList();
-        Set<String> userIds = users.stream().map(User::getId).collect(Collectors.toSet());
+        Set<Long> userIds = users.stream().map(User::getId).collect(Collectors.toSet());
         List<UserRole> allUserRoles = userRoleRepository.findByUserIdIn(userIds);
 
         Set<Long> allRoleIds = allUserRoles.stream().map(UserRole::getRoleId).collect(Collectors.toSet());
         Map<Long, Role> roleMap = roleRepository.findAllByIdIn(allRoleIds).stream()
                 .collect(Collectors.toMap(Role::getId, r -> r));
 
-        Map<String, Set<RoleResponse>> userRoleMap = new HashMap<>();
+        Map<Long, Set<RoleResponse>> userRoleMap = new HashMap<>();
         for (UserRole ur : allUserRoles) {
             Role r = roleMap.get(ur.getRoleId());
             if (r != null) {

@@ -28,5 +28,5 @@ public class StudentRequest {
     StudentStatus status;
     Long classGroupId;
     Long majorId;
-    String userId;
+    Long userId;
 }

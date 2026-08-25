@@ -1,8 +1,10 @@
 package com.toan.university_management.entity.masterdata;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -10,7 +12,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "province",
@@ -20,12 +22,7 @@ import org.hibernate.annotations.SQLRestriction;
 )
 @SQLDelete(sql = "UPDATE province SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class Province {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class Province extends BaseEntity {
 
     @Column(name = "province_code", nullable = false)
     String provinceCode;

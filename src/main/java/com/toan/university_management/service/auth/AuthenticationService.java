@@ -15,6 +15,8 @@ public interface AuthenticationService {
     IntrospectResponse introspect(IntrospectRequest request);
     void logout(LogoutRequest request);
     AuthenticationResponse refreshToken(RefreshRequest request);
+    void forgotPassword(com.toan.university_management.dto.request.auth.ForgotPasswordRequest request);
+    void resetPassword(com.toan.university_management.dto.request.auth.ResetPasswordRequest request);
 }
 
 

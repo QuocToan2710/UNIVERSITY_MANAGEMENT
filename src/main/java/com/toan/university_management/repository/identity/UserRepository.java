@@ -9,12 +9,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     Optional<User> findByUsername(String username);
 
     Optional<User> findByUsernameIgnoreCase(String username);
+
+    Optional<User> findByEmail(String email);
 
     Page<User> findAll(Pageable pageable);
 
@@ -22,9 +24,9 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     Page<User> findAllByDeletedFalse(Pageable pageable);
 
-    Optional<User> findByIdAndDeletedFalse(String id);
+    Optional<User> findByIdAndDeletedFalse(Long id);
 
-    boolean existsByIdAndDeletedFalse(String id);
+    boolean existsByIdAndDeletedFalse(Long id);
 
-    List<User> findAllByIdIn(Collection<String> ids);
+    List<User> findAllByIdIn(Collection<Long> ids);
 }

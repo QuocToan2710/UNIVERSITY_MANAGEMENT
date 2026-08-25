@@ -78,7 +78,7 @@ public class NotificationServiceTest {
                 NotificationType.EXAM,
                 NotificationPriority.HIGH,
                 NotificationTargetType.USER,
-                testUser.getId(),
+                String.valueOf(testUser.getId()),
                 "/schedule/exam"
         );
 
@@ -109,11 +109,11 @@ public class NotificationServiceTest {
     void testMarkAllAsRead() {
         notificationService.sendSystemNotification(
                 "Thông báo 1", "Nội dung 1", NotificationType.GENERAL, NotificationPriority.NORMAL,
-                NotificationTargetType.USER, testUser.getId(), null
+                NotificationTargetType.USER, String.valueOf(testUser.getId()), null
         );
         notificationService.sendSystemNotification(
                 "Thông báo 2", "Nội dung 2", NotificationType.SCHEDULE, NotificationPriority.HIGH,
-                NotificationTargetType.USER, testUser.getId(), null
+                NotificationTargetType.USER, String.valueOf(testUser.getId()), null
         );
 
         long unreadBefore = notificationService.getMyUnreadCount();

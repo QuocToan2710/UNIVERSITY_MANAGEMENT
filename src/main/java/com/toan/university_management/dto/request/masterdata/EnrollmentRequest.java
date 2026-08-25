@@ -17,7 +17,14 @@ public class EnrollmentRequest {
     Long studentId;
     @JsonAlias({"courseClassId"})
     Long subjectClassId;
+    Double attendanceScore;
     Double midtermScore;
     Double finalScore;
+    Double totalScore;
+    String letterGrade;
+    Double gradePoint4;
+    com.toan.university_management.enums.GradeStatus gradeStatus;
+    String note;
+    Boolean isAppealed;
     EnrollmentStatus status;
 }

@@ -1,9 +1,11 @@
 package com.toan.university_management.entity.masterdata;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import com.toan.university_management.enums.EnrollmentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -13,7 +15,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "enrollment", 
@@ -28,12 +30,7 @@ import java.time.LocalDateTime;
 )
 @SQLDelete(sql = "UPDATE enrollment SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class Enrollment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class Enrollment extends BaseEntity {
 
     @Column(name = "enrollment_code", nullable = false)
     String enrollmentCode;
@@ -47,6 +44,9 @@ public class Enrollment {
     @Column(name = "subject_class_id", nullable = false)
     Long subjectClassId;
 
+    @Column(name = "attendance_score")
+    Double attendanceScore;
+
     @Column(name = "midterm_score")
     Double midtermScore;
 
@@ -55,6 +55,32 @@ public class Enrollment {
 
     @Column(name = "total_score")
     Double totalScore;
+
+    @Column(name = "letter_grade", length = 10)
+    String letterGrade;
+
+    @Column(name = "grade_point_4")
+    Double gradePoint4;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade_status")
+    @Builder.Default
+    com.toan.university_management.enums.GradeStatus gradeStatus = com.toan.university_management.enums.GradeStatus.DRAFT;
+
+    @Column(name = "note")
+    String note;
+
+    @Builder.Default
+    @Column(name = "is_appealed")
+    Boolean isAppealed = false;
+
+    public boolean isAppealed() {
+        return Boolean.TRUE.equals(isAppealed);
+    }
+
+    public com.toan.university_management.enums.GradeStatus getGradeStatus() {
+        return gradeStatus != null ? gradeStatus : com.toan.university_management.enums.GradeStatus.DRAFT;
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

@@ -23,7 +23,7 @@ public class NotificationResponse {
     NotificationPriority priority;
     NotificationTargetType targetType;
     String targetValue;
-    String senderId;
+    Long senderId;
     String senderName;
     String actionUrl;
     boolean read;

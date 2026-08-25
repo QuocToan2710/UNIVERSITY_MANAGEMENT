@@ -9,14 +9,14 @@ import java.util.List;
 
 public interface UserService {
     UserResponse createUser(UserRequest request);
-    UserResponse getUserById(String id);
+    UserResponse getUserById(Long id);
     List<UserResponse> getAllUsers();
     Page<UserResponse> getAllUsers(Pageable pageable);
     UserResponse updateUser(UserRequest request);
-    UserResponse updateUserRoles(String id, List<String> roleNames);
+    UserResponse updateUserRoles(Long id, List<String> roleNames);
     UserResponse getMyInfo();
 
-    void deleteUser(String  id);
+    void deleteUser(Long id);
 }
 
 

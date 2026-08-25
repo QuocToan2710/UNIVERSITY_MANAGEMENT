@@ -1,8 +1,10 @@
 package com.toan.university_management.entity.notification;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
@@ -10,7 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(
@@ -20,18 +22,13 @@ import java.time.LocalDateTime;
         @Index(name = "idx_user_notification_created", columnList = "created_at")
     }
 )
-public class UserNotification {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class UserNotification extends BaseEntity {
 
     @Column(name = "notification_id", nullable = false)
     Long notificationId;
 
     @Column(name = "user_id", nullable = false)
-    String userId;
+    Long userId;
 
     @Column(name = "is_read", nullable = false)
     @Builder.Default
@@ -39,8 +36,4 @@ public class UserNotification {
 
     @Column(name = "read_at")
     LocalDateTime readAt;
-
-    @Column(name = "created_at", nullable = false)
-    @Builder.Default
-    LocalDateTime createdAt = LocalDateTime.now();
 }

@@ -166,8 +166,22 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
     public List<ClassScheduleResponse> getMySchedule(String semester, String academicYear) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
-                .flatMap(u -> studentRepository.findByUserIdAndDeletedFalse(u.getId()))
-                .map(student -> getByStudent(student.getId(), semester, academicYear))
+                .or(() -> userRepository.findByUsernameIgnoreCase(username))
+                .or(() -> userRepository.findByEmail(username))
+                .flatMap(u -> {
+                    var studentOpt = studentRepository.findByUserIdAndDeletedFalse(u.getId())
+                            .or(() -> studentRepository.findByStudentCodeAndDeletedFalse(u.getUsername()))
+                            .or(() -> (u.getUserCode() != null && !u.getUserCode().isBlank()) ? studentRepository.findByStudentCodeAndDeletedFalse(u.getUserCode()) : Optional.empty())
+                            .or(() -> (u.getEmail() != null && !u.getEmail().isBlank()) ? studentRepository.findByEmailAndDeletedFalse(u.getEmail()) : Optional.empty());
+                    if (studentOpt.isPresent()) {
+                        return studentOpt.map(student -> getByStudent(student.getId(), semester, academicYear));
+                    }
+                    var teacherOpt = teacherRepository.findByUserIdAndDeletedFalse(u.getId())
+                            .or(() -> teacherRepository.findByTeacherCodeAndDeletedFalse(u.getUsername()))
+                            .or(() -> (u.getUserCode() != null && !u.getUserCode().isBlank()) ? teacherRepository.findByTeacherCodeAndDeletedFalse(u.getUserCode()) : Optional.empty())
+                            .or(() -> (u.getEmail() != null && !u.getEmail().isBlank()) ? teacherRepository.findByEmailAndDeletedFalse(u.getEmail()) : Optional.empty());
+                    return teacherOpt.map(teacher -> getByTeacher(teacher.getId(), semester, academicYear));
+                })
                 .orElse(Collections.emptyList());
     }
 

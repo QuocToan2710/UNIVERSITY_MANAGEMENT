@@ -45,7 +45,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    ApiResponse<UserResponse> getUser(@PathVariable("userId") String userId) {
+    ApiResponse<UserResponse> getUser(@PathVariable("userId") Long userId) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getUserById(userId))
                 .build();
@@ -59,14 +59,14 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/roles")
-    ApiResponse<UserResponse> updateUserRoles(@PathVariable("userId") String userId, @RequestBody List<String> roleNames) {
+    ApiResponse<UserResponse> updateUserRoles(@PathVariable("userId") Long userId, @RequestBody List<String> roleNames) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUserRoles(userId, roleNames))
                 .build();
     }
 
     @DeleteMapping("/{userId}")
-    ApiResponse<String> deleteUser(@PathVariable String userId) {
+    ApiResponse<String> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
         return ApiResponse.<String>builder().result("User has been deleted successfully").build();
     }

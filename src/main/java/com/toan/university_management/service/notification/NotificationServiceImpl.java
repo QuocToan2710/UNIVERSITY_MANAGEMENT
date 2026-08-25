@@ -60,7 +60,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationResponse sendNotification(NotificationSendRequest request) {
-        String currentUserId = null;
+        Long currentUserId = null;
         String currentSenderName = "Hệ thống";
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -89,7 +89,7 @@ public class NotificationServiceImpl implements NotificationService {
         notification = notificationRepository.save(notification);
 
         // Phân giải danh sách người nhận và tạo UserNotification
-        Set<String> recipientUserIds = resolveRecipientUserIds(notification.getTargetType(), notification.getTargetValue());
+        Set<Long> recipientUserIds = resolveRecipientUserIds(notification.getTargetType(), notification.getTargetValue());
         if (!recipientUserIds.isEmpty()) {
             final Long notifId = notification.getId();
             final LocalDateTime now = LocalDateTime.now();
@@ -125,7 +125,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .priority(priority != null ? priority : NotificationPriority.NORMAL)
                 .targetType(targetType)
                 .targetValue(targetValue)
-                .senderId("SYSTEM")
+                .senderId(null)
                 .senderName("Hệ thống Đào tạo")
                 .actionUrl(actionUrl)
                 .createdAt(LocalDateTime.now())
@@ -133,7 +133,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         notification = notificationRepository.save(notification);
 
-        Set<String> recipientUserIds = resolveRecipientUserIds(targetType, targetValue);
+        Set<Long> recipientUserIds = resolveRecipientUserIds(targetType, targetValue);
         if (!recipientUserIds.isEmpty()) {
             final Long notifId = notification.getId();
             final LocalDateTime now = LocalDateTime.now();
@@ -152,7 +152,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationResponse> getMyNotifications(Pageable pageable) {
-        String currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
         Page<UserNotification> unPage = userNotificationRepository.findAllByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
         if (unPage.isEmpty()) {
             return Page.empty(pageable);
@@ -176,7 +176,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public NotificationSummaryResponse getMyNotificationSummary() {
-        String currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
         long unreadCount = userNotificationRepository.countByUserIdAndReadFalse(currentUserId);
         List<UserNotification> recentUserNotifs = userNotificationRepository.findTop10ByUserIdOrderByCreatedAtDesc(currentUserId);
 
@@ -204,19 +204,19 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public long getMyUnreadCount() {
-        String currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
         return userNotificationRepository.countByUserIdAndReadFalse(currentUserId);
     }
 
     @Override
     public void markAsRead(Long userNotificationId) {
-        String currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
         userNotificationRepository.markAsReadByIdAndUserId(userNotificationId, currentUserId, LocalDateTime.now());
     }
 
     @Override
     public void markAllAsRead() {
-        String currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
         userNotificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
@@ -230,7 +230,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     // --- HELPER METHODS ---
 
-    private String getCurrentUserId() {
+    private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -240,8 +240,8 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
-    private Set<String> resolveRecipientUserIds(NotificationTargetType targetType, String targetValue) {
-        Set<String> userIds = new HashSet<>();
+    private Set<Long> resolveRecipientUserIds(NotificationTargetType targetType, String targetValue) {
+        Set<Long> userIds = new HashSet<>();
         if (targetType == null) return userIds;
 
         switch (targetType) {
@@ -269,11 +269,17 @@ public class NotificationServiceImpl implements NotificationService {
             case USER -> {
                 if (targetValue != null && !targetValue.isBlank()) {
                     String val = targetValue.trim();
-                    userRepository.findById(val)
-                            .or(() -> userRepository.findByUsername(val))
-                            .or(() -> userRepository.findByUsernameIgnoreCase(val))
-                            .map(User::getId)
-                            .ifPresent(userIds::add);
+                    try {
+                        Long uid = Long.parseLong(val);
+                        userRepository.findById(uid).ifPresent(u -> userIds.add(u.getId()));
+                    } catch (NumberFormatException ignored) {}
+
+                    if (userIds.isEmpty()) {
+                        userRepository.findByUsername(val)
+                                .or(() -> userRepository.findByUsernameIgnoreCase(val))
+                                .map(User::getId)
+                                .ifPresent(userIds::add);
+                    }
 
                     if (userIds.isEmpty()) {
                         // Check studentCode / teacherCode

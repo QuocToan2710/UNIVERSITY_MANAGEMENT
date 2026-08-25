@@ -12,7 +12,7 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserRequest {
-    String id;
+    Long id;
     String userCode;
     @Size(min = 6, message = "USERNAME_INVALID")
     String username;

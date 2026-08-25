@@ -6,6 +6,9 @@ import com.toan.university_management.entity.masterdata.Enrollment;
 import com.toan.university_management.entity.masterdata.Student;
 import com.toan.university_management.entity.masterdata.SubjectClass;
 import com.toan.university_management.enums.EnrollmentStatus;
+import com.toan.university_management.enums.NotificationPriority;
+import com.toan.university_management.enums.NotificationTargetType;
+import com.toan.university_management.enums.NotificationType;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;
 import com.toan.university_management.mapper.masterdata.EnrollmentMapper;
@@ -36,6 +39,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     EnrollmentRepository enrollmentRepository;
     StudentRepository studentRepository;
     SubjectClassRepository subjectClassRepository;
+    com.toan.university_management.repository.masterdata.SubjectRepository subjectRepository;
     com.toan.university_management.repository.masterdata.ClassScheduleRepository classScheduleRepository;
     EnrollmentMapper enrollmentMapper;
     com.toan.university_management.service.notification.NotificationService notificationService;
@@ -104,10 +108,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                     notificationService.sendSystemNotification(
                             "Đăng ký học phần thành công",
                             "Bạn đã đăng ký thành công vào lớp: " + subjectClass.getName() + " (" + subjectClass.getSubjectClassCode() + ")",
-                            com.toan.university_management.enums.NotificationType.ENROLLMENT,
-                            com.toan.university_management.enums.NotificationPriority.NORMAL,
-                            com.toan.university_management.enums.NotificationTargetType.USER,
-                            s.getUserId(),
+                            NotificationType.ENROLLMENT,
+                            NotificationPriority.NORMAL,
+                            NotificationTargetType.USER,
+                            String.valueOf(s.getUserId()),
                             "/schedule/timetable"
                     );
                 }
@@ -161,14 +165,14 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     private void calculateTotalScore(Enrollment e) {
-        if (e.getMidtermScore() != null && e.getFinalScore() != null) {
-            double total = e.getMidtermScore() * 0.3 + e.getFinalScore() * 0.7;
-            e.setTotalScore(Math.round(total * 100.0) / 100.0);
-            if (e.getTotalScore() >= 4.0) {
-                e.setStatus(EnrollmentStatus.PASSED);
-            } else {
-                e.setStatus(EnrollmentStatus.FAILED);
-            }
+        if (e.getSubjectClassId() != null) {
+            subjectClassRepository.findByIdAndDeletedFalse(e.getSubjectClassId()).ifPresent(sc -> {
+                if (sc.getSubjectId() != null) {
+                    com.toan.university_management.entity.masterdata.Subject subject = 
+                            subjectRepository.findByIdAndDeletedFalse(sc.getSubjectId()).orElse(null);
+                    com.toan.university_management.util.GradeCalculator.computeAndApplyGrades(e, subject);
+                }
+            });
         }
     }
 
@@ -184,6 +188,15 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             subjectClassRepository.findByIdAndDeletedFalse(e.getSubjectClassId()).ifPresent(sc -> {
                 res.setSubjectClassCode(sc.getSubjectClassCode());
                 res.setSubjectClassName(sc.getName());
+                res.setSemester(sc.getSemester());
+                res.setAcademicYear(sc.getAcademicYear());
+                if (sc.getSubjectId() != null) {
+                    subjectRepository.findByIdAndDeletedFalse(sc.getSubjectId()).ifPresent(sub -> {
+                        res.setSubjectCode(sub.getSubjectCode());
+                        res.setSubjectName(sub.getName());
+                        res.setCredit(sub.getCredit());
+                    });
+                }
             });
         }
         return res;
@@ -197,6 +210,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Map<Long, Student> studentMap = studentRepository.findAllByIdInAndDeletedFalse(studentIds).stream().collect(Collectors.toMap(Student::getId, Function.identity()));
         Map<Long, SubjectClass> scMap = subjectClassRepository.findAllByIdInAndDeletedFalse(scIds).stream().collect(Collectors.toMap(SubjectClass::getId, Function.identity()));
 
+        Set<Long> subjectIds = scMap.values().stream().map(SubjectClass::getSubjectId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, com.toan.university_management.entity.masterdata.Subject> subMap = subjectRepository.findAllByIdInAndDeletedFalse(subjectIds).stream().collect(Collectors.toMap(com.toan.university_management.entity.masterdata.Subject::getId, Function.identity()));
+
         return list.stream().map(e -> {
             EnrollmentResponse res = enrollmentMapper.toEnrollmentResponse(e);
             if (e.getStudentId() != null && studentMap.containsKey(e.getStudentId())) {
@@ -208,6 +224,14 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 SubjectClass sc = scMap.get(e.getSubjectClassId());
                 res.setSubjectClassCode(sc.getSubjectClassCode());
                 res.setSubjectClassName(sc.getName());
+                res.setSemester(sc.getSemester());
+                res.setAcademicYear(sc.getAcademicYear());
+                if (sc.getSubjectId() != null && subMap.containsKey(sc.getSubjectId())) {
+                    var sub = subMap.get(sc.getSubjectId());
+                    res.setSubjectCode(sub.getSubjectCode());
+                    res.setSubjectName(sub.getName());
+                    res.setCredit(sub.getCredit());
+                }
             }
             return res;
         }).toList();

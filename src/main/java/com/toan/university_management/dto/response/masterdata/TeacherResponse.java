@@ -26,5 +26,5 @@ public class TeacherResponse {
     String fullAddress;
     Long departmentId;
     String departmentName;
-    String userId;
+    Long userId;
 }

@@ -31,20 +31,17 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
     private final com.toan.university_management.repository.identity.RolePermissionRepository rolePermissionRepository;
 
     private static final Set<String> PUBLIC_POST_ENDPOINTS = Set.of(
-            "/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh", "/users"
+            "/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password", "/users"
     );
 
     private static final List<String> AUTHENTICATED_SELF_ENDPOINTS = List.of(
             "/users/myInfo",
             "/users/change-password",
-            "/notifications/my",
-            "/notifications/summary",
-            "/notifications/unread-count",
-            "/notifications/*/read",
-            "/notifications/read-all",
-            "/schedules/my",
-            "/exam-schedules/my",
-            "/teaching-schedules/my"
+            "/notifications/**",
+            "/schedules/**",
+            "/exam-schedules/**",
+            "/teaching-schedules/**",
+            "/grades/**"
     );
 
     @Override
@@ -114,7 +111,7 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
                     .or(() -> userRepository.findByUsernameIgnoreCase(username));
 
             if (userOpt.isPresent()) {
-                String userId = userOpt.get().getId();
+                Long userId = userOpt.get().getId();
                 List<com.toan.university_management.entity.identity.UserRole> userRoles = userRoleRepository.findByUserId(userId);
                 Set<Long> roleIds = userRoles.stream()
                         .map(com.toan.university_management.entity.identity.UserRole::getRoleId)

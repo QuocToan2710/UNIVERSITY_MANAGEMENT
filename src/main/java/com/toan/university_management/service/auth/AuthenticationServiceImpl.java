@@ -55,6 +55,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     InvalidatedTokenRepository invalidatedTokenRepository;
     TokenBlacklistService tokenBlacklistService;
     PasswordEncoder passwordEncoder;
+    com.toan.university_management.service.email.EmailService emailService;
+    com.toan.university_management.service.otp.OtpService otpService;
 
     @NonFinal
     @Value("${jwt.signer-key}")
@@ -78,6 +80,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String reqUsername = request.getUsername().trim();
         User user = userRepository.findByUsername(reqUsername)
                 .or(() -> userRepository.findByUsernameIgnoreCase(reqUsername))
+                .or(() -> userRepository.findByEmail(reqUsername))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         if (user.getPassword() == null || user.getPassword().isBlank()) {
@@ -167,6 +170,47 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .token(token)
                 .authenticated(true)
                 .build();
+    }
+
+    @Override
+    public void forgotPassword(com.toan.university_management.dto.request.auth.ForgotPasswordRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
+        }
+        String input = request.getEmail().trim();
+        User user = userRepository.findByEmail(input)
+                .or(() -> userRepository.findByUsername(input))
+                .or(() -> userRepository.findByUsernameIgnoreCase(input))
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
+
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
+        }
+
+        String otp = otpService.generateAndStoreOtp(user.getEmail());
+        emailService.sendOtpEmail(user.getEmail(), user.getFullName(), otp);
+    }
+
+    @Override
+    public void resetPassword(com.toan.university_management.dto.request.auth.ResetPasswordRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
+        }
+        String input = request.getEmail().trim();
+        User user = userRepository.findByEmail(input)
+                .or(() -> userRepository.findByUsername(input))
+                .or(() -> userRepository.findByUsernameIgnoreCase(input))
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
+
+        boolean isValidOtp = otpService.verifyOtp(user.getEmail(), request.getOtp());
+        if (!isValidOtp) {
+            throw new AppException(ErrorCode.OTP_INVALID);
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        otpService.clearOtp(user.getEmail());
+        log.info("Password successfully reset for user: {}", user.getUsername());
     }
 
     private byte[] getSignerKeyBytes() {

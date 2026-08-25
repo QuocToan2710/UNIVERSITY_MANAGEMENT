@@ -1,21 +1,21 @@
 package com.toan.university_management.entity.notification;
 
+import com.toan.university_management.common.entity.BaseEntity;
 import com.toan.university_management.enums.NotificationPriority;
 import com.toan.university_management.enums.NotificationTargetType;
 import com.toan.university_management.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(
@@ -27,12 +27,7 @@ import java.time.LocalDateTime;
 )
 @SQLDelete(sql = "UPDATE notification SET deleted = true, deleted_key = CAST(id AS CHAR) WHERE id = ?")
 @SQLRestriction("deleted = false")
-public class Notification {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+public class Notification extends BaseEntity {
 
     @Column(name = "notification_code", nullable = false)
     String notificationCode;
@@ -60,17 +55,13 @@ public class Notification {
     String targetValue;
 
     @Column(name = "sender_id")
-    String senderId;
+    Long senderId;
 
     @Column(name = "sender_name")
     String senderName;
 
     @Column(name = "action_url")
     String actionUrl;
-
-    @Column(name = "created_at", nullable = false)
-    @Builder.Default
-    LocalDateTime createdAt = LocalDateTime.now();
 
     @Builder.Default
     @Column(name = "deleted", nullable = false)

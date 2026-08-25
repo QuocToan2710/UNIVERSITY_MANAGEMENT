@@ -40,6 +40,9 @@ SubjectServiceImpl implements SubjectService {
             throw new AppException(ErrorCode.DEPARTMENT_NOT_FOUND);
         }
         Subject subject = subjectMapper.toSubject(request);
+        if (subject.getAttendanceCoeff() <= 0) subject.setAttendanceCoeff(1);
+        if (subject.getMidtermCoeff() <= 0) subject.setMidtermCoeff(3);
+        if (subject.getFinalCoeff() <= 0) subject.setFinalCoeff(6);
         subject = subjectRepository.save(subject);
         return subjectMapper.toSubjectResponse(subject);
     }
@@ -72,6 +75,9 @@ SubjectServiceImpl implements SubjectService {
             throw new AppException(ErrorCode.DEPARTMENT_NOT_FOUND);
         }
         subjectMapper.updateSubject(subject, request);
+        if (subject.getAttendanceCoeff() <= 0) subject.setAttendanceCoeff(1);
+        if (subject.getMidtermCoeff() <= 0) subject.setMidtermCoeff(3);
+        if (subject.getFinalCoeff() <= 0) subject.setFinalCoeff(6);
         subject = subjectRepository.save(subject);
         return subjectMapper.toSubjectResponse(subject);
     }

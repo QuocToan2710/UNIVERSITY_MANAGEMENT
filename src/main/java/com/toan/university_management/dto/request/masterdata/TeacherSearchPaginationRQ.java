@@ -1,20 +1,15 @@
 package com.toan.university_management.dto.request.masterdata;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.toan.university_management.common.dto.BaseSearchPaginationRQ;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@Builder
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeacherSearchPaginationRQ {
-    @Builder.Default
-    private int pageNumber = 0;
-    @Builder.Default
-    private int pageSize = 10;
-    private String keyword;
+public class TeacherSearchPaginationRQ extends BaseSearchPaginationRQ {
     private String teacherCode;
     private String fullName;
     private String email;

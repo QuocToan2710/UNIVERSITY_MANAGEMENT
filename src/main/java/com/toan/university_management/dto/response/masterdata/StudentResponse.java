@@ -35,5 +35,5 @@ public class StudentResponse {
     String classGroupName;
     Long majorId;
     String majorName;
-    String userId;
+    Long userId;
 }
