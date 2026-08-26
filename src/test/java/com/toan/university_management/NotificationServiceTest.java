@@ -19,11 +19,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Transactional
 public class NotificationServiceTest {
 
     @Autowired
@@ -42,17 +44,18 @@ public class NotificationServiceTest {
 
     @BeforeEach
     void setUp() {
+        String suffix = String.valueOf(System.nanoTime());
         testUser = userRepository.save(User.builder()
-                .username("test_notify_user")
+                .username("test_notify_" + suffix)
                 .password("password123")
-                .email("test_notify@university.edu.vn")
-                .fullName("Test Notification User")
-                .userCode("USR_NOTIF_01")
+                .email("test_notify_" + suffix + "@university.edu.vn")
+                .fullName("Test Notification User " + suffix)
+                .userCode("USR_NOTIF_" + suffix)
                 .build());
 
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
-                        "test_notify_user",
+                        testUser.getUsername(),
                         "password123",
                         java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))
                 )

@@ -60,7 +60,7 @@ spring:
 
 jwt:
   signer-key: ${JWT_SIGNER_KEY:2c0306580240c4c6df087492195a8bd95a8dfa0d646f7c48cf89dbc8621ba226}
-  valid-duration: 3600
+  valid-duration: 86400
   refreshable-duration: 360000
 
 cors:

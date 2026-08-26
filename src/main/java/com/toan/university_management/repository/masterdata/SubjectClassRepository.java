@@ -14,6 +14,9 @@ public interface SubjectClassRepository extends JpaRepository<SubjectClass, Long
     Page<SubjectClass> findAllByDeletedFalse(Pageable pageable);
     List<SubjectClass> findAllByDeletedFalse();
     List<SubjectClass> findAllByIdInAndDeletedFalse(Collection<Long> ids);
+    List<SubjectClass> findAllBySemesterAndAcademicYearAndDeletedFalse(String semester, String academicYear);
+    List<SubjectClass> findAllBySemesterAndDeletedFalse(String semester);
+    List<SubjectClass> findAllByAcademicYearAndDeletedFalse(String academicYear);
     boolean existsBySubjectClassCodeAndDeletedFalse(String subjectClassCode);
     boolean existsByIdAndDeletedFalse(Long id);
 }

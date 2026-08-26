@@ -41,7 +41,10 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             "/schedules/**",
             "/exam-schedules/**",
             "/teaching-schedules/**",
-            "/grades/**"
+            "/grades/**",
+            "/enrollments/**",
+            "/subject-classes/**",
+            "/tuition-fees/**"
     );
 
     @Override

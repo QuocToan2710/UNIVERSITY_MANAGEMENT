@@ -17,6 +17,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findAllBySubjectClassIdAndDeletedFalse(Long subjectClassId);
     List<Enrollment> findAllBySubjectClassIdInAndDeletedFalse(Collection<Long> subjectClassIds);
     List<Enrollment> findAllByIdInAndDeletedFalse(Collection<Long> ids);
+    Optional<Enrollment> findByStudentIdAndSubjectClassIdAndDeletedFalse(Long studentId, Long subjectClassId);
     boolean existsByStudentIdAndSubjectClassIdAndDeletedFalse(Long studentId, Long subjectClassId);
     boolean existsByIdAndDeletedFalse(Long id);
     long countBySubjectClassIdAndDeletedFalse(Long subjectClassId);
