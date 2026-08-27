@@ -24,6 +24,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findAllByTeacherIdAndSemesterAndAcademicYearAndDeletedFalse(
             Long teacherId, String semester, String academicYear);
 
+    /** Lấy lịch theo subjectClassId */
+    List<ClassSchedule> findAllBySubjectClassIdAndDeletedFalse(Long subjectClassId);
+
     /** Lấy lịch theo danh sách subjectClassId (dùng cho student lookup qua enrollment) */
     List<ClassSchedule> findAllBySubjectClassIdInAndDeletedFalse(Collection<Long> subjectClassIds);
 

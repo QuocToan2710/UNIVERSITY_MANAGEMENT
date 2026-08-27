@@ -74,8 +74,28 @@ public class Enrollment extends BaseEntity {
     @Column(name = "is_appealed")
     Boolean isAppealed = false;
 
+    @Column(name = "total_sessions")
+    @Builder.Default
+    Integer totalSessions = 0;
+
+    @Column(name = "absent_sessions")
+    @Builder.Default
+    Integer absentSessions = 0;
+
+    @Column(name = "absence_rate")
+    @Builder.Default
+    Double absenceRate = 0.0;
+
+    @Builder.Default
+    @Column(name = "is_banned_from_exam")
+    Boolean isBannedFromExam = false;
+
     public boolean isAppealed() {
         return Boolean.TRUE.equals(isAppealed);
+    }
+
+    public boolean isBannedFromExam() {
+        return Boolean.TRUE.equals(isBannedFromExam);
     }
 
     public com.toan.university_management.enums.GradeStatus getGradeStatus() {

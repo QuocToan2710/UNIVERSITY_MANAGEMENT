@@ -51,7 +51,9 @@ public enum ErrorCode {
     EMAIL_NOT_FOUND(1018, "Email not found in system", HttpStatus.NOT_FOUND),
     OTP_INVALID(1019, "Invalid OTP code", HttpStatus.BAD_REQUEST),
     OTP_EXPIRED(1020, "OTP code has expired", HttpStatus.BAD_REQUEST),
-    EMAIL_SEND_FAILED(1021, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR)
+    EMAIL_SEND_FAILED(1021, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR),
+    RESOURCE_NOT_FOUND(1022, "Resource not found", HttpStatus.NOT_FOUND),
+    ATTENDANCE_SESSION_NOT_FOUND(2023, "Attendance session not found", HttpStatus.NOT_FOUND)
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

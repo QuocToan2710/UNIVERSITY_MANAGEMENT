@@ -6,6 +6,7 @@ public enum NotificationType {
     EXAM,
     ENROLLMENT,
     GRADE,
+    ATTENDANCE,
     SYSTEM,
     GENERAL
 }

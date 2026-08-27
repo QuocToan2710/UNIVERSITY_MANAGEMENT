@@ -21,4 +21,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     boolean existsByStudentIdAndSubjectClassIdAndDeletedFalse(Long studentId, Long subjectClassId);
     boolean existsByIdAndDeletedFalse(Long id);
     long countBySubjectClassIdAndDeletedFalse(Long subjectClassId);
+    List<Enrollment> findAllByIsBannedFromExamTrueAndDeletedFalse();
+    List<Enrollment> findAllBySubjectClassIdAndIsBannedFromExamTrueAndDeletedFalse(Long subjectClassId);
 }
