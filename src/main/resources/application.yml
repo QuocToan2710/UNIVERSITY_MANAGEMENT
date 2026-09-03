@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   max-http-request-header-size: 65536
 
 logging:
@@ -41,6 +41,8 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
 
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}

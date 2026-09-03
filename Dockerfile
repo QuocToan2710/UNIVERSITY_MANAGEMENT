@@ -9,5 +9,6 @@ RUN mvn package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseSerialGC -Xss512k"
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
