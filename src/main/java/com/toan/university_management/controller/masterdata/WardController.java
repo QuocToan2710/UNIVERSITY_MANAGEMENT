@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.WardRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.WardResponse;
 import com.toan.university_management.service.masterdata.ward.WardService;
 import jakarta.validation.Valid;
@@ -75,9 +75,9 @@ public class WardController {
     }
 
     @PostMapping("/search")
-    ApiResponse<com.toan.university_management.dto.response.BasePaginationRS<WardResponse>> searchWards(
+    ApiResponse<com.toan.university_management.common.dto.BasePaginationRS<WardResponse>> searchWards(
             @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.WardSearchPaginationRQ request) {
-        return ApiResponse.<com.toan.university_management.dto.response.BasePaginationRS<WardResponse>>builder()
+        return ApiResponse.<com.toan.university_management.common.dto.BasePaginationRS<WardResponse>>builder()
                 .result(wardService.search(request))
                 .build();
     }

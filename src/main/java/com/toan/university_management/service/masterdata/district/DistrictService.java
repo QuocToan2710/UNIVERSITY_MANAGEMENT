@@ -3,7 +3,7 @@ package com.toan.university_management.service.masterdata.district;
 import com.toan.university_management.dto.request.masterdata.DistrictRequest;
 import com.toan.university_management.dto.response.masterdata.DistrictResponse;
 import com.toan.university_management.dto.request.masterdata.DistrictSearchPaginationRQ;
-import com.toan.university_management.dto.response.BasePaginationRS;
+import com.toan.university_management.common.dto.BasePaginationRS;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

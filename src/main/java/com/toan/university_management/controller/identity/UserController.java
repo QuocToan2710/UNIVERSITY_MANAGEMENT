@@ -2,7 +2,7 @@ package com.toan.university_management.controller.identity;
 
 
 import com.toan.university_management.dto.request.identity.UserRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.identity.UserResponse;
 import com.toan.university_management.service.identity.UserService;
 import jakarta.validation.Valid;

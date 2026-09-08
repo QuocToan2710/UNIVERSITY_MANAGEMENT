@@ -1,6 +1,8 @@
 package com.toan.university_management.service.masterdata.teacher;
 
+import com.toan.university_management.common.dto.BasePaginationRS;
 import com.toan.university_management.dto.request.masterdata.TeacherRequest;
+import com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ;
 import com.toan.university_management.dto.response.masterdata.TeacherResponse;
 import com.toan.university_management.entity.masterdata.Department;
 import com.toan.university_management.entity.masterdata.District;
@@ -13,6 +15,7 @@ import com.toan.university_management.mapper.masterdata.TeacherMapper;
 import com.toan.university_management.repository.masterdata.DepartmentRepository;
 import com.toan.university_management.repository.masterdata.DistrictRepository;
 import com.toan.university_management.repository.masterdata.ProvinceRepository;
+import com.toan.university_management.repository.masterdata.StudentRepository;
 import com.toan.university_management.repository.masterdata.TeacherRepository;
 import com.toan.university_management.repository.masterdata.WardRepository;
 import com.toan.university_management.entity.identity.User;
@@ -42,6 +45,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class TeacherServiceImpl implements TeacherService {
     TeacherRepository teacherRepository;
+    StudentRepository studentRepository;
     DepartmentRepository departmentRepository;
     ProvinceRepository provinceRepository;
     DistrictRepository districtRepository;
@@ -56,56 +60,54 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TeacherResponse createTeacher(TeacherRequest request) {
-        if (teacherRepository.existsByTeacherCodeAndDeletedFalse(request.getTeacherCode())) {
+        if (teacherRepository.existsByTeacherCodeAndDeletedFalse(request.getTeacherCode())
+                || userRepository.existsByUsername(request.getTeacherCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         if (request.getDepartmentId() != null && !departmentRepository.existsByIdAndDeletedFalse(request.getDepartmentId())) {
             throw new AppException(ErrorCode.DEPARTMENT_NOT_FOUND);
         }
-        Teacher teacher = teacherMapper.toTeacher(request);
 
-        // Đảm bảo Email luôn được gán chính xác từ hồ sơ giảng viên
-        String email = (teacher.getEmail() != null && !teacher.getEmail().isBlank())
-                ? teacher.getEmail().trim()
-                : teacher.getTeacherCode().toLowerCase() + "@university.edu.vn";
+        String email = (request.getEmail() != null && !request.getEmail().isBlank())
+                ? request.getEmail().trim()
+                : request.getTeacherCode().toLowerCase() + "@university.edu.vn";
+
+        if (userRepository.existsByEmail(email)
+                || teacherRepository.existsByEmailAndDeletedFalse(email)
+                || studentRepository.existsByEmailAndDeletedFalse(email)) {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
+
+        Teacher teacher = teacherMapper.toTeacher(request);
         teacher.setEmail(email);
 
-        if (teacher.getUserId() == null) {
-            var userOpt = userRepository.findByUsername(teacher.getTeacherCode())
-                    .or(() -> userRepository.findByEmail(email));
+        // Tự động cấp tài khoản đăng nhập cho giảng viên
+        String rawPassword = teacher.getTeacherCode() + "@123";
 
-            if (userOpt.isPresent()) {
-                teacher.setUserId(userOpt.get().getId());
-            } else {
-                // Tự động cấp tài khoản đăng nhập cho giảng viên
-                String rawPassword = teacher.getTeacherCode() + "@123";
+        User newUser = User.builder()
+                .username(teacher.getTeacherCode())
+                .password(passwordEncoder.encode(rawPassword))
+                .email(email)
+                .fullName(teacher.getFullName())
+                .userCode(teacher.getTeacherCode())
+                .build();
+        newUser = userRepository.save(newUser);
 
-                User newUser = User.builder()
-                        .username(teacher.getTeacherCode())
-                        .password(passwordEncoder.encode(rawPassword))
-                        .email(email)
-                        .fullName(teacher.getFullName())
-                        .userCode(teacher.getTeacherCode())
-                        .build();
-                newUser = userRepository.save(newUser);
+        final Long newUserId = newUser.getId();
+        roleRepository.findByRoleCode("ROLE_TEACHER")
+                .or(() -> roleRepository.findByName("TEACHER"))
+                .ifPresent(role -> {
+                    userRoleRepository.save(UserRole.builder()
+                            .userId(newUserId)
+                            .roleId(role.getId())
+                            .build());
+                });
 
-                final Long newUserId = newUser.getId();
-                roleRepository.findByRoleCode("ROLE_TEACHER")
-                        .or(() -> roleRepository.findByName("TEACHER"))
-                        .ifPresent(role -> {
-                            userRoleRepository.save(UserRole.builder()
-                                    .userId(newUserId)
-                                    .roleId(role.getId())
-                                    .build());
-                        });
+        teacher.setUserId(newUserId);
+        log.info("Auto-created User account for teacher {}: email={}, username={}, defaultPassword={}", teacher.getTeacherCode(), email, teacher.getTeacherCode(), rawPassword);
 
-                teacher.setUserId(newUserId);
-                log.info("Auto-created User account for teacher {}: email={}, username={}, defaultPassword={}", teacher.getTeacherCode(), email, teacher.getTeacherCode(), rawPassword);
-
-                // Gửi email thông báo tài khoản & mật khẩu ban đầu
-                emailService.sendAccountCreatedEmail(email, teacher.getFullName(), teacher.getTeacherCode(), rawPassword, "ROLE_TEACHER");
-            }
-        }
+        // Gửi email thông báo tài khoản & mật khẩu ban đầu
+        emailService.sendAccountCreatedEmail(email, teacher.getFullName(), teacher.getTeacherCode(), rawPassword, "ROLE_TEACHER");
 
         teacher = teacherRepository.save(teacher);
         return enrichResponse(teacher);
@@ -138,6 +140,21 @@ public class TeacherServiceImpl implements TeacherService {
         if (request.getDepartmentId() != null && !departmentRepository.existsByIdAndDeletedFalse(request.getDepartmentId())) {
             throw new AppException(ErrorCode.DEPARTMENT_NOT_FOUND);
         }
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            String newEmail = request.getEmail().trim();
+            Long currentUserId = teacher.getUserId();
+            boolean emailInUseByOtherUser = currentUserId != null
+                    ? userRepository.existsByEmailAndIdNot(newEmail, currentUserId)
+                    : userRepository.existsByEmail(newEmail);
+            boolean emailInUseByOtherTeacher = teacherRepository.existsByEmailAndIdNotAndDeletedFalse(newEmail, id);
+            boolean emailInUseByStudent = studentRepository.existsByEmailAndDeletedFalse(newEmail);
+
+            if (emailInUseByOtherUser || emailInUseByOtherTeacher || emailInUseByStudent) {
+                throw new AppException(ErrorCode.EMAIL_EXISTED);
+            }
+        }
+
         teacherMapper.updateTeacher(teacher, request);
 
         // Đồng bộ email và họ tên sang tài khoản User nếu có
@@ -176,8 +193,8 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     @Transactional(readOnly = true)
-    public com.toan.university_management.dto.response.BasePaginationRS<TeacherResponse> search(com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ search) {
-        if (search == null) search = new com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ();
+    public BasePaginationRS<TeacherResponse> search(TeacherSearchPaginationRQ search) {
+        if (search == null) search = new TeacherSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
 

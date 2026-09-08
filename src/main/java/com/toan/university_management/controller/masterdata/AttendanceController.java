@@ -4,7 +4,7 @@ import com.toan.university_management.annotation.PermissionMeta;
 import com.toan.university_management.dto.request.masterdata.AttendanceSessionRequest;
 import com.toan.university_management.dto.request.masterdata.AutoGenerateSessionsRequest;
 import com.toan.university_management.dto.request.masterdata.SubmitAttendanceRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.AttendanceRecordResponse;
 import com.toan.university_management.dto.response.masterdata.AttendanceSessionResponse;
 import com.toan.university_management.dto.response.masterdata.BannedStudentResponse;

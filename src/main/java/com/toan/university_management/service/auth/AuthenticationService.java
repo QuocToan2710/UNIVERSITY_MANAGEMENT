@@ -17,6 +17,7 @@ public interface AuthenticationService {
     AuthenticationResponse refreshToken(RefreshRequest request);
     void forgotPassword(com.toan.university_management.dto.request.auth.ForgotPasswordRequest request);
     void resetPassword(com.toan.university_management.dto.request.auth.ResetPasswordRequest request);
+    com.nimbusds.jwt.SignedJWT verifyToken(String token, boolean isRefresh);
 }
 
 

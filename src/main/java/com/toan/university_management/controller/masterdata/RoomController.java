@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.RoomRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.RoomResponse;
 import com.toan.university_management.service.masterdata.room.RoomService;
 import jakarta.validation.Valid;

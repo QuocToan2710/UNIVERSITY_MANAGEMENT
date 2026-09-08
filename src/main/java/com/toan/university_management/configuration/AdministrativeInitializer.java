@@ -34,9 +34,9 @@ public class AdministrativeInitializer {
     public void initAdministrativeData() {
         long currentProvinces = provinceRepository.count();
 
-        // Check if data is already initialized with post-merger dataset
-        if (currentProvinces > 0 && wardRepository.count() > 3000) {
-            log.info("Post-merger administrative master data already initialized.");
+        // Check if data is already initialized
+        if (currentProvinces > 0) {
+            log.info("Administrative master data already present ({} provinces). Skipping initialization.", currentProvinces);
             return;
         }
 
@@ -60,11 +60,6 @@ public class AdministrativeInitializer {
                     log.error("Expected JSON array in administrative dataset");
                     return;
                 }
-
-                // Clear previous dummy / partial data
-                wardRepository.deleteAllInBatch();
-                districtRepository.deleteAllInBatch();
-                provinceRepository.deleteAllInBatch();
 
                 List<Province> provincesToSave = new ArrayList<>();
                 Map<Integer, JsonNode> wardsOrDistrictsMap = new LinkedHashMap<>();
@@ -232,6 +227,8 @@ public class AdministrativeInitializer {
             case "xã" -> "Xã";
             case "thị trấn" -> "Thị trấn";
             default -> Character.toUpperCase(raw.charAt(0)) + raw.substring(1);
+
         };
     }
+
 }

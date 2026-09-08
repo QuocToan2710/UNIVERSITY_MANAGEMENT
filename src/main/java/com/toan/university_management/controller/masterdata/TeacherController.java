@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.TeacherRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.TeacherResponse;
 import com.toan.university_management.service.masterdata.teacher.TeacherService;
 import jakarta.validation.Valid;
@@ -65,9 +65,9 @@ public class TeacherController {
     }
 
     @PostMapping("/search")
-    ApiResponse<com.toan.university_management.dto.response.BasePaginationRS<TeacherResponse>> searchTeachers(
+    ApiResponse<com.toan.university_management.common.dto.BasePaginationRS<TeacherResponse>> searchTeachers(
             @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ request) {
-        return ApiResponse.<com.toan.university_management.dto.response.BasePaginationRS<TeacherResponse>>builder()
+        return ApiResponse.<com.toan.university_management.common.dto.BasePaginationRS<TeacherResponse>>builder()
                 .result(teacherService.search(request))
                 .build();
     }

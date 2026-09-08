@@ -74,22 +74,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         if (request.getUsername() == null || request.getUsername().isBlank() ||
             request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         String reqUsername = request.getUsername().trim();
         User user = userRepository.findByUsername(reqUsername)
                 .or(() -> userRepository.findByUsernameIgnoreCase(reqUsername))
-                .or(() -> userRepository.findByEmail(reqUsername))
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                .or(() -> userRepository.findByUserCode(reqUsername))
+                .or(() -> userRepository.findByUserCodeIgnoreCase(reqUsername))
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
         if (user.getPassword() == null || user.getPassword().isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
         if (!authenticated) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         var token = generateToken(user);
@@ -223,7 +224,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return keyBytes;
     }
 
-    private SignedJWT verifyToken(String token, Boolean isRefresh) {
+    @Override
+    public SignedJWT verifyToken(String token, boolean isRefresh) {
         try {
             JWSVerifier verifier = new MACVerifier(getSignerKeyBytes());
             SignedJWT signedJWT = SignedJWT.parse(token);

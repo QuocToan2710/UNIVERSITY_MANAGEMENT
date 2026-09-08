@@ -2,7 +2,7 @@ package com.toan.university_management.service.masterdata.ward;
 
 import com.toan.university_management.dto.request.masterdata.WardRequest;
 import com.toan.university_management.dto.request.masterdata.WardSearchPaginationRQ;
-import com.toan.university_management.dto.response.BasePaginationRS;
+import com.toan.university_management.common.dto.BasePaginationRS;
 import com.toan.university_management.dto.response.masterdata.WardResponse;
 import com.toan.university_management.entity.masterdata.District;
 import com.toan.university_management.entity.masterdata.Province;

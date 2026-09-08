@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.DistrictRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.DistrictResponse;
 import com.toan.university_management.service.masterdata.district.DistrictService;
 import jakarta.validation.Valid;
@@ -73,9 +73,9 @@ public class DistrictController {
     }
 
     @PostMapping("/search")
-    ApiResponse<com.toan.university_management.dto.response.BasePaginationRS<DistrictResponse>> searchDistricts(
+    ApiResponse<com.toan.university_management.common.dto.BasePaginationRS<DistrictResponse>> searchDistricts(
             @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.DistrictSearchPaginationRQ request) {
-        return ApiResponse.<com.toan.university_management.dto.response.BasePaginationRS<DistrictResponse>>builder()
+        return ApiResponse.<com.toan.university_management.common.dto.BasePaginationRS<DistrictResponse>>builder()
                 .result(districtService.search(request))
                 .build();
     }

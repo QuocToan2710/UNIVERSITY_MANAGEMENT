@@ -10,4 +10,6 @@ public interface TeacherRepository extends BaseRepository<Teacher, Long> {
     Optional<Teacher> findByTeacherCodeAndDeletedFalse(String teacherCode);
     Optional<Teacher> findByEmailAndDeletedFalse(String email);
     boolean existsByTeacherCodeAndDeletedFalse(String teacherCode);
+    boolean existsByEmailAndDeletedFalse(String email);
+    boolean existsByEmailAndIdNotAndDeletedFalse(String email, Long id);
 }

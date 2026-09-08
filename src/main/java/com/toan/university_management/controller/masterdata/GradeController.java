@@ -2,7 +2,7 @@ package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.annotation.PermissionMeta;
 import com.toan.university_management.dto.request.masterdata.GradeBatchUpdateRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.StudentTranscriptResponse;
 import com.toan.university_management.dto.response.masterdata.SubjectClassGradeSummaryResponse;
 import com.toan.university_management.service.masterdata.grade.GradeService;

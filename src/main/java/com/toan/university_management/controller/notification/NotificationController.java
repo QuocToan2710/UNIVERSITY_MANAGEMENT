@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.notification;
 
 import com.toan.university_management.dto.request.notification.NotificationSendRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.notification.NotificationResponse;
 import com.toan.university_management.dto.response.notification.NotificationSummaryResponse;
 import com.toan.university_management.service.notification.NotificationService;

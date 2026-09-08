@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.ClassGroupRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.ClassGroupResponse;
 import com.toan.university_management.service.masterdata.classgroup.ClassGroupService;
 import jakarta.validation.Valid;

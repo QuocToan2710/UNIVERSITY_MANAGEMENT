@@ -19,6 +19,7 @@ public class ApplicationInitconfig {
     AdministrativeInitializer administrativeInitializer;
 
     @Bean
+    @ConditionalOnProperty(prefix = "app.init-data", name = "enabled", havingValue = "true", matchIfMissing = false)
     ApplicationRunner applicationRunner(){
         return args -> {
             adminInitializer.initAdmin(passwordEncoder);

@@ -1,6 +1,8 @@
 package com.toan.university_management.service.masterdata.student;
 
+import com.toan.university_management.common.dto.BasePaginationRS;
 import com.toan.university_management.dto.request.masterdata.StudentRequest;
+import com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ;
 import com.toan.university_management.dto.response.masterdata.StudentResponse;
 import com.toan.university_management.entity.masterdata.ClassGroup;
 import com.toan.university_management.entity.masterdata.District;
@@ -17,6 +19,7 @@ import com.toan.university_management.repository.masterdata.DistrictRepository;
 import com.toan.university_management.repository.masterdata.MajorRepository;
 import com.toan.university_management.repository.masterdata.ProvinceRepository;
 import com.toan.university_management.repository.masterdata.StudentRepository;
+import com.toan.university_management.repository.masterdata.TeacherRepository;
 import com.toan.university_management.repository.masterdata.WardRepository;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.identity.UserRole;
@@ -45,6 +48,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class StudentServiceImpl implements StudentService {
     StudentRepository studentRepository;
+    TeacherRepository teacherRepository;
     ClassGroupRepository classGroupRepository;
     MajorRepository majorRepository;
     ProvinceRepository provinceRepository;
@@ -60,10 +64,23 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public StudentResponse createStudent(StudentRequest request) {
-        if (studentRepository.existsByStudentCodeAndDeletedFalse(request.getStudentCode())) {
+        if (studentRepository.existsByStudentCodeAndDeletedFalse(request.getStudentCode())
+                || userRepository.existsByUsername(request.getStudentCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
+
+        String email = (request.getEmail() != null && !request.getEmail().isBlank())
+                ? request.getEmail().trim()
+                : request.getStudentCode().toLowerCase() + "@university.edu.vn";
+
+        if (userRepository.existsByEmail(email)
+                || studentRepository.existsByEmailAndDeletedFalse(email)
+                || teacherRepository.existsByEmailAndDeletedFalse(email)) {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
+
         Student student = studentMapper.toStudent(request);
+        student.setEmail(email);
 
         if (request.getClassGroupId() != null && !classGroupRepository.existsByIdAndDeletedFalse(request.getClassGroupId())) {
             throw new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND);
@@ -79,48 +96,33 @@ public class StudentServiceImpl implements StudentService {
             student.setStatus(StudentStatus.ACTIVE);
         }
 
-        // Đảm bảo Email luôn được gán chính xác từ hồ sơ sinh viên
-        String email = (student.getEmail() != null && !student.getEmail().isBlank())
-                ? student.getEmail().trim()
-                : student.getStudentCode().toLowerCase() + "@university.edu.vn";
-        student.setEmail(email);
+        // Tự động cấp tài khoản đăng nhập cho sinh viên
+        String rawPassword = student.getStudentCode() + "@123";
 
-        if (student.getUserId() == null) {
-            var userOpt = userRepository.findByUsername(student.getStudentCode())
-                    .or(() -> userRepository.findByEmail(email));
+        User newUser = User.builder()
+                .username(student.getStudentCode())
+                .password(passwordEncoder.encode(rawPassword))
+                .email(email)
+                .fullName(student.getFullName())
+                .userCode(student.getStudentCode())
+                .build();
+        newUser = userRepository.save(newUser);
 
-            if (userOpt.isPresent()) {
-                student.setUserId(userOpt.get().getId());
-            } else {
-                // Tự động cấp tài khoản đăng nhập cho sinh viên
-                String rawPassword = student.getStudentCode() + "@123";
+        final Long newUserId = newUser.getId();
+        roleRepository.findByRoleCode("ROLE_STUDENT")
+                .or(() -> roleRepository.findByName("STUDENT"))
+                .ifPresent(role -> {
+                    userRoleRepository.save(UserRole.builder()
+                            .userId(newUserId)
+                            .roleId(role.getId())
+                            .build());
+                });
 
-                User newUser = User.builder()
-                        .username(student.getStudentCode())
-                        .password(passwordEncoder.encode(rawPassword))
-                        .email(email)
-                        .fullName(student.getFullName())
-                        .userCode(student.getStudentCode())
-                        .build();
-                newUser = userRepository.save(newUser);
+        student.setUserId(newUserId);
+        log.info("Auto-created User account for student {}: email={}, username={}, defaultPassword={}", student.getStudentCode(), email, student.getStudentCode(), rawPassword);
 
-                final Long newUserId = newUser.getId();
-                roleRepository.findByRoleCode("ROLE_STUDENT")
-                        .or(() -> roleRepository.findByName("STUDENT"))
-                        .ifPresent(role -> {
-                            userRoleRepository.save(UserRole.builder()
-                                    .userId(newUserId)
-                                    .roleId(role.getId())
-                                    .build());
-                        });
-
-                student.setUserId(newUserId);
-                log.info("Auto-created User account for student {}: email={}, username={}, defaultPassword={}", student.getStudentCode(), email, student.getStudentCode(), rawPassword);
-
-                // Gửi email thông báo tài khoản & mật khẩu ban đầu
-                emailService.sendAccountCreatedEmail(email, student.getFullName(), student.getStudentCode(), rawPassword, "ROLE_STUDENT");
-            }
-        }
+        // Gửi email thông báo tài khoản & mật khẩu ban đầu
+        emailService.sendAccountCreatedEmail(email, student.getFullName(), student.getStudentCode(), rawPassword, "ROLE_STUDENT");
 
         Student savedStudent = studentRepository.save(student);
         return enrichStudentResponse(savedStudent);
@@ -151,6 +153,20 @@ public class StudentServiceImpl implements StudentService {
     public StudentResponse updateStudent(Long id, StudentRequest request) {
         Student student = studentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            String newEmail = request.getEmail().trim();
+            Long currentUserId = student.getUserId();
+            boolean emailInUseByOtherUser = currentUserId != null
+                    ? userRepository.existsByEmailAndIdNot(newEmail, currentUserId)
+                    : userRepository.existsByEmail(newEmail);
+            boolean emailInUseByOtherStudent = studentRepository.existsByEmailAndIdNotAndDeletedFalse(newEmail, id);
+            boolean emailInUseByTeacher = teacherRepository.existsByEmailAndDeletedFalse(newEmail);
+
+            if (emailInUseByOtherUser || emailInUseByOtherStudent || emailInUseByTeacher) {
+                throw new AppException(ErrorCode.EMAIL_EXISTED);
+            }
+        }
 
         studentMapper.updateStudent(student, request);
 
@@ -205,8 +221,8 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public com.toan.university_management.dto.response.BasePaginationRS<StudentResponse> search(com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ search) {
-        if (search == null) search = new com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ();
+    public BasePaginationRS<StudentResponse> search(StudentSearchPaginationRQ search) {
+        if (search == null) search = new StudentSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
 

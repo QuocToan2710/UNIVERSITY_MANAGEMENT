@@ -43,6 +43,11 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.existsByEmail(request.getEmail().trim())) {
+                throw new AppException(ErrorCode.EMAIL_EXISTED);
+            }
+        }
 
         User user = userMapper.toUser(request);
         if (user.getUserCode() == null || user.getUserCode().isBlank()) {
@@ -109,6 +114,13 @@ public class UserServiceImpl implements UserService {
         }
         User user = userRepository.findByIdAndDeletedFalse(request.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.existsByEmailAndIdNot(request.getEmail().trim(), user.getId())) {
+                throw new AppException(ErrorCode.EMAIL_EXISTED);
+            }
+        }
+
         userMapper.updateUser(user, request);
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));

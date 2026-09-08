@@ -1,7 +1,7 @@
 package com.toan.university_management.common.util;
 
 import com.toan.university_management.constant.AppConstants;
-import com.toan.university_management.dto.response.BasePaginationRS;
+import com.toan.university_management.common.dto.BasePaginationRS;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,16 +22,12 @@ public final class PaginationUtils {
      * @return BasePaginationRS chứa danh sách trang, tổng số bản ghi và tổng số trang
      */
     public static <T> BasePaginationRS<T> paginateList(List<T> items, int pageNumber, int pageSize) {
+        int validSize = pageSize > 0 ? pageSize : AppConstants.DEFAULT_PAGE_SIZE;
         if (items == null || items.isEmpty()) {
-            return BasePaginationRS.<T>builder()
-                    .items(Collections.emptyList())
-                    .totalCount(0)
-                    .totalPage(0)
-                    .build();
+            return BasePaginationRS.of(Collections.emptyList(), 0, validSize, 0);
         }
 
         int validPage = Math.max(0, pageNumber);
-        int validSize = pageSize > 0 ? pageSize : AppConstants.DEFAULT_PAGE_SIZE;
 
         long totalCount = items.size();
         int start = validPage * validSize;
@@ -39,15 +35,6 @@ public final class PaginationUtils {
                 ? items.subList(start, Math.min(start + validSize, (int) totalCount))
                 : Collections.emptyList();
 
-        int totalPage = (int) (totalCount / validSize);
-        if (totalCount % validSize != 0) {
-            totalPage++;
-        }
-
-        return BasePaginationRS.<T>builder()
-                .items(pageList)
-                .totalCount(totalCount)
-                .totalPage(totalPage)
-                .build();
+        return BasePaginationRS.of(pageList, validPage, validSize, totalCount);
     }
 }

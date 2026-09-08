@@ -1,7 +1,7 @@
 package com.toan.university_management.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

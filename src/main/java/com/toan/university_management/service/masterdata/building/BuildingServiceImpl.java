@@ -2,7 +2,7 @@ package com.toan.university_management.service.masterdata.building;
 
 import com.toan.university_management.dto.request.masterdata.BuildingRequest;
 import com.toan.university_management.dto.request.masterdata.BuildingSearchPaginationRQ;
-import com.toan.university_management.dto.response.BasePaginationRS;
+import com.toan.university_management.common.dto.BasePaginationRS;
 import com.toan.university_management.dto.response.masterdata.BuildingResponse;
 import com.toan.university_management.entity.masterdata.Building;
 import com.toan.university_management.exception.AppException;

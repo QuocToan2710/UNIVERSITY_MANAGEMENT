@@ -4,7 +4,7 @@ import com.toan.university_management.dto.request.masterdata.BatchEnrollmentRequ
 import com.toan.university_management.dto.request.masterdata.ClassGroupEnrollmentRequest;
 import com.toan.university_management.dto.request.masterdata.EnrollmentRequest;
 import com.toan.university_management.dto.request.masterdata.StudentRegistrationRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.AvailableSubjectClassResponse;
 import com.toan.university_management.dto.response.masterdata.BatchEnrollmentResultResponse;
 import com.toan.university_management.dto.response.masterdata.EnrollmentResponse;

@@ -58,10 +58,11 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             return new AuthorizationDecision(true);
         }
 
-        // 1.5. Allow Swagger UI & OpenAPI Spec Endpoints
+        // 1.5. Allow Swagger UI & OpenAPI Spec Endpoints & WebSocket handshake
         if (antPathMatcher.match("/v3/api-docs/**", path) ||
             antPathMatcher.match("/swagger-ui/**", path) ||
-            antPathMatcher.match("/swagger-ui.html", path)) {
+            antPathMatcher.match("/swagger-ui.html", path) ||
+            antPathMatcher.match("/ws-notifications/**", path)) {
             return new AuthorizationDecision(true);
         }
 

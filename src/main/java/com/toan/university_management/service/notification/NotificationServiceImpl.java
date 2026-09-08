@@ -57,6 +57,7 @@ public class NotificationServiceImpl implements NotificationService {
     TeacherRepository teacherRepository;
     EnrollmentRepository enrollmentRepository;
     SubjectClassRepository subjectClassRepository;
+    org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Override
     public NotificationResponse sendNotification(NotificationSendRequest request) {
@@ -104,6 +105,9 @@ public class NotificationServiceImpl implements NotificationService {
             userNotificationRepository.saveAll(userNotifs);
         }
 
+        // Push real-time notification via WebSocket
+        pushRealtimeNotification(notification, recipientUserIds);
+
         return mapToResponse(notification, null);
     }
 
@@ -146,6 +150,33 @@ public class NotificationServiceImpl implements NotificationService {
                             .build())
                     .collect(Collectors.toList());
             userNotificationRepository.saveAll(userNotifs);
+        }
+
+        // Push real-time notification via WebSocket
+        pushRealtimeNotification(notification, recipientUserIds);
+    }
+
+    private void pushRealtimeNotification(Notification notification, Set<Long> recipientUserIds) {
+        try {
+            if (messagingTemplate == null) return;
+            NotificationResponse response = mapToResponse(notification, null);
+
+            // 1. Broadcast to all users if targetType is ALL
+            if (notification.getTargetType() == NotificationTargetType.ALL) {
+                messagingTemplate.convertAndSend("/topic/notifications", response);
+            }
+
+            // 2. Direct real-time message to specific recipient queues
+            if (recipientUserIds != null && !recipientUserIds.isEmpty()) {
+                List<User> users = userRepository.findAllById(recipientUserIds);
+                for (User user : users) {
+                    if (user.getUsername() != null && !user.getUsername().isBlank()) {
+                        messagingTemplate.convertAndSendToUser(user.getUsername(), "/queue/notifications", response);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to push real-time WebSocket notification: {}", e.getMessage(), e);
         }
     }
 

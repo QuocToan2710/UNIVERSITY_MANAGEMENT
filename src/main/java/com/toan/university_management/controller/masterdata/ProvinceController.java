@@ -1,7 +1,7 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.dto.request.masterdata.ProvinceRequest;
-import com.toan.university_management.dto.response.ApiResponse;
+import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.dto.response.masterdata.ProvinceResponse;
 import com.toan.university_management.service.masterdata.province.ProvinceService;
 import jakarta.validation.Valid;
@@ -67,9 +67,9 @@ public class ProvinceController {
     }
 
     @PostMapping("/search")
-    ApiResponse<com.toan.university_management.dto.response.BasePaginationRS<ProvinceResponse>> searchProvinces(
+    ApiResponse<com.toan.university_management.common.dto.BasePaginationRS<ProvinceResponse>> searchProvinces(
             @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.ProvinceSearchPaginationRQ request) {
-        return ApiResponse.<com.toan.university_management.dto.response.BasePaginationRS<ProvinceResponse>>builder()
+        return ApiResponse.<com.toan.university_management.common.dto.BasePaginationRS<ProvinceResponse>>builder()
                 .result(provinceService.search(request))
                 .build();
     }

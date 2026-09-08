@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 import com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ;
-import com.toan.university_management.dto.response.BasePaginationRS;
+import com.toan.university_management.common.dto.BasePaginationRS;
 
 public interface StudentService {
     StudentResponse createStudent(StudentRequest request);

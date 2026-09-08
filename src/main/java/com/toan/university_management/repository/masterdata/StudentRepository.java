@@ -23,4 +23,7 @@ public interface StudentRepository extends BaseRepository<Student, Long> {
 
     @Query("SELECT new com.toan.university_management.dto.reports.StudentReportDTO(CAST(s.id AS string), s.studentCode, s.fullName, s.dob, s.gender, s.phoneNumber, s.email, s.address) FROM Student s WHERE s.deleted = false")
     List<StudentReportDTO> getAllStudentForReport();
+
+    boolean existsByEmailAndDeletedFalse(String email);
+    boolean existsByEmailAndIdNotAndDeletedFalse(String email, Long id);
 }

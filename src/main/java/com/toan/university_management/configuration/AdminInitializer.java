@@ -55,95 +55,13 @@ public class AdminInitializer {
     @Transactional
     public void initAdmin(PasswordEncoder passwordEncoder) {
         try {
-            // 1. Kiểm tra và migrate bảng user nếu còn kiểu VARCHAR / UUID
-            Integer isVarchar = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
-                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'id' AND DATA_TYPE LIKE '%char%'",
-                Integer.class
-            );
-
-            if (isVarchar != null && isVarchar > 0) {
-                log.info("Detected legacy VARCHAR id in 'user' table. Migrating schema to BIGINT IDENTITY...");
-                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
-
-                try {
-                    jdbcTemplate.update("UPDATE student SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("UPDATE teacher SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("DELETE FROM user_notification WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("DELETE FROM user_role WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("UPDATE notification SET sender_id = NULL WHERE sender_id IS NOT NULL AND sender_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-
-                jdbcTemplate.execute("DROP TABLE IF EXISTS user");
-                jdbcTemplate.execute("""
-                    CREATE TABLE `user` (
-                      `id` bigint NOT NULL AUTO_INCREMENT,
-                      `user_code` varchar(255) DEFAULT NULL,
-                      `username` varchar(255) NOT NULL,
-                      `password` varchar(255) NOT NULL,
-                      `email` varchar(255) DEFAULT NULL,
-                      `full_name` varchar(255) DEFAULT NULL,
-                      `deleted` bit(1) NOT NULL DEFAULT b'0',
-                      `deleted_key` varchar(64) NOT NULL DEFAULT '',
-                      PRIMARY KEY (`id`),
-                      UNIQUE KEY `uk_user_username_deleted` (`username`,`deleted_key`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """);
-
-                try {
-                    jdbcTemplate.execute("ALTER TABLE user_role MODIFY COLUMN user_id bigint NOT NULL");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.execute("ALTER TABLE student MODIFY COLUMN user_id bigint DEFAULT NULL");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.execute("ALTER TABLE teacher MODIFY COLUMN user_id bigint DEFAULT NULL");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.execute("ALTER TABLE user_notification MODIFY COLUMN user_id bigint NOT NULL");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.execute("ALTER TABLE notification MODIFY COLUMN sender_id bigint DEFAULT NULL");
-                } catch (Exception ignored) {}
-
-                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
-                log.info("Schema migration for 'user' and related tables completed successfully.");
-            } else {
-                try {
-                    jdbcTemplate.update("UPDATE student SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("UPDATE teacher SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("DELETE FROM user_notification WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("DELETE FROM user_role WHERE user_id IS NOT NULL AND user_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-                try {
-                    jdbcTemplate.update("UPDATE notification SET sender_id = NULL WHERE sender_id IS NOT NULL AND sender_id NOT REGEXP '^[0-9]+$'");
-                } catch (Exception ignored) {}
-            }
-
             jdbcTemplate.update("UPDATE enrollment SET is_appealed = false WHERE is_appealed IS NULL");
             jdbcTemplate.update("UPDATE enrollment SET grade_status = 'DRAFT' WHERE grade_status IS NULL");
             jdbcTemplate.update("UPDATE subject SET attendance_coeff = 1 WHERE attendance_coeff IS NULL OR attendance_coeff <= 0");
             jdbcTemplate.update("UPDATE subject SET midterm_coeff = 3 WHERE midterm_coeff IS NULL OR midterm_coeff <= 0");
             jdbcTemplate.update("UPDATE subject SET final_coeff = 6 WHERE final_coeff IS NULL OR final_coeff <= 0");
         } catch (Exception e) {
-            log.debug("Auto database cleanup / migration skipped or warning: {}", e.getMessage());
-            try {
-                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
-            } catch (Exception ignored) {}
+            log.debug("Auto database cleanup / update skipped: {}", e.getMessage());
         }
 
         initDefaultRoles();
@@ -182,45 +100,42 @@ public class AdminInitializer {
                         .description("User role")
                         .build()));
 
-        // Sync permissions for all roles
-        rolePermissionRepository.deleteByRoleId(adminRole.getId());
-        rolePermissionRepository.deleteByRoleId(teacherRole.getId());
-        rolePermissionRepository.deleteByRoleId(studentRole.getId());
-        rolePermissionRepository.deleteByRoleId(userRole.getId());
+        // Sync permissions only if role permissions table is empty
+        if (rolePermissionRepository.count() == 0 && !allPermissions.isEmpty()) {
+            for (Permission perm : allPermissions) {
+                String m = perm.getMethod() != null ? perm.getMethod().toUpperCase() : "";
+                String ep = perm.getEndpoint() != null ? perm.getEndpoint() : "";
+                boolean isReadOnly = "GET".equals(m) || ep.endsWith("/search") || ep.endsWith("/combo") || ep.endsWith("/export") || ep.endsWith("/all") || ep.contains("myInfo");
 
-        for (Permission perm : allPermissions) {
-            String m = perm.getMethod() != null ? perm.getMethod().toUpperCase() : "";
-            String ep = perm.getEndpoint() != null ? perm.getEndpoint() : "";
-            boolean isReadOnly = "GET".equals(m) || ep.endsWith("/search") || ep.endsWith("/combo") || ep.endsWith("/export") || ep.endsWith("/all") || ep.contains("myInfo");
-
-            // Admin: ALL
-            rolePermissionRepository.save(RolePermission.builder()
-                    .roleId(adminRole.getId())
-                    .permissionId(perm.getId())
-                    .build());
-
-            // Teacher: Read-only + schedules & exam-schedules & enrollments
-            if (isReadOnly || ep.startsWith("/schedules") || ep.startsWith("/exam-schedules") || ep.startsWith("/enrollments")) {
+                // Admin: ALL
                 rolePermissionRepository.save(RolePermission.builder()
-                        .roleId(teacherRole.getId())
+                        .roleId(adminRole.getId())
                         .permissionId(perm.getId())
                         .build());
-            }
 
-            // Student: Read-only + enrollments
-            if (isReadOnly || ep.startsWith("/enrollments")) {
-                rolePermissionRepository.save(RolePermission.builder()
-                        .roleId(studentRole.getId())
-                        .permissionId(perm.getId())
-                        .build());
-            }
+                // Teacher: Read-only + schedules & exam-schedules & enrollments
+                if (isReadOnly || ep.startsWith("/schedules") || ep.startsWith("/exam-schedules") || ep.startsWith("/enrollments")) {
+                    rolePermissionRepository.save(RolePermission.builder()
+                            .roleId(teacherRole.getId())
+                            .permissionId(perm.getId())
+                            .build());
+                }
 
-            // User: Read-only
-            if (isReadOnly) {
-                rolePermissionRepository.save(RolePermission.builder()
-                        .roleId(userRole.getId())
-                        .permissionId(perm.getId())
-                        .build());
+                // Student: Read-only + enrollments
+                if (isReadOnly || ep.startsWith("/enrollments")) {
+                    rolePermissionRepository.save(RolePermission.builder()
+                            .roleId(studentRole.getId())
+                            .permissionId(perm.getId())
+                            .build());
+                }
+
+                // User: Read-only
+                if (isReadOnly) {
+                    rolePermissionRepository.save(RolePermission.builder()
+                            .roleId(userRole.getId())
+                            .permissionId(perm.getId())
+                            .build());
+                }
             }
         }
 
@@ -665,7 +580,7 @@ public class AdminInitializer {
                 user.setUserCode(userCode);
                 needSave = true;
             }
-            if (user.getPassword() == null || user.getPassword().isBlank() || user.getPassword().startsWith("$2a$") || user.getPassword().startsWith("$2b$")) {
+            if (user.getPassword() == null || user.getPassword().isBlank()) {
                 user.setPassword(passwordEncoder.encode(rawPassword));
                 needSave = true;
             }
