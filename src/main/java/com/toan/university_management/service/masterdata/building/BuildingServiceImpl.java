@@ -88,42 +88,28 @@ public class BuildingServiceImpl implements BuildingService {
         if (search == null) search = new BuildingSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
 
-        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
-        String codeFilter = search.getBuildingCode() != null ? search.getBuildingCode().trim().toLowerCase() : "";
-        String nameFilter = search.getName() != null ? search.getName().trim().toLowerCase() : "";
-        String statusFilter = search.getStatus() != null ? search.getStatus().trim().toLowerCase() : "";
-
-        List<BuildingResponse> all = buildingRepository.findAllByDeletedFalse().stream()
+        org.springframework.data.jpa.domain.Specification<Building> spec = com.toan.university_management.specification.masterdata.BuildingSpecification.filter(search);
+        org.springframework.data.domain.Page<Building> buildingPage = buildingRepository.findAll(spec, pageable);
+        List<BuildingResponse> content = buildingPage.getContent().stream()
                 .map(buildingMapper::toBuildingResponse)
-                .filter(b -> {
-                    if (!kw.isEmpty()) {
-                        String full = ((b.getBuildingCode() != null ? b.getBuildingCode() : "") + " "
-                                + (b.getName() != null ? b.getName() : "") + " "
-                                + (b.getDescription() != null ? b.getDescription() : "")).toLowerCase();
-                        if (!full.contains(kw)) return false;
-                    }
-                    if (!codeFilter.isEmpty()) {
-                        if (b.getBuildingCode() == null || !b.getBuildingCode().toLowerCase().contains(codeFilter)) return false;
-                    }
-                    if (!nameFilter.isEmpty()) {
-                        if (b.getName() == null || !b.getName().toLowerCase().contains(nameFilter)) return false;
-                    }
-                    if (!statusFilter.isEmpty() && !"all".equalsIgnoreCase(statusFilter)) {
-                        if (b.getStatus() == null || !b.getStatus().equalsIgnoreCase(statusFilter)) return false;
-                    }
-                    return true;
-                })
                 .toList();
 
-        return com.toan.university_management.common.util.PaginationUtils.paginateList(all, page, size);
+        return BasePaginationRS.<BuildingResponse>builder()
+                .items(content)
+                .totalCount(buildingPage.getTotalElements())
+                .totalPage(buildingPage.getTotalPages())
+                .build();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BuildingResponse> export(BuildingSearchPaginationRQ search) {
-        BuildingSearchPaginationRQ copy = search != null ? search : new BuildingSearchPaginationRQ();
-        copy.setPageNumber(0);
-        copy.setPageSize(Integer.MAX_VALUE);
-        return search(copy).getItems();
+        org.springframework.data.jpa.domain.Specification<Building> spec = com.toan.university_management.specification.masterdata.BuildingSpecification.filter(search);
+        return buildingRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "buildingCode"))
+                .stream()
+                .map(buildingMapper::toBuildingResponse)
+                .toList();
     }
 }

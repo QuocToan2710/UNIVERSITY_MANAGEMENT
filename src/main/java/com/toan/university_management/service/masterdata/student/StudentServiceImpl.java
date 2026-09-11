@@ -64,8 +64,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public StudentResponse createStudent(StudentRequest request) {
-        if (studentRepository.existsByStudentCodeAndDeletedFalse(request.getStudentCode())
-                || userRepository.existsByUsername(request.getStudentCode())) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getStudentCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
@@ -73,7 +72,7 @@ public class StudentServiceImpl implements StudentService {
                 ? request.getEmail().trim()
                 : request.getStudentCode().toLowerCase() + "@university.edu.vn";
 
-        if (userRepository.existsByEmail(email)
+        if (userRepository.existsByEmailAndDeletedFalse(email)
                 || studentRepository.existsByEmailAndDeletedFalse(email)
                 || teacherRepository.existsByEmailAndDeletedFalse(email)) {
             throw new AppException(ErrorCode.EMAIL_EXISTED);
@@ -82,11 +81,15 @@ public class StudentServiceImpl implements StudentService {
         Student student = studentMapper.toStudent(request);
         student.setEmail(email);
 
-        if (request.getClassGroupId() != null && !classGroupRepository.existsByIdAndDeletedFalse(request.getClassGroupId())) {
-            throw new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND);
+        if (request.getClassGroupId() != null) {
+            ClassGroup cg = classGroupRepository.findByIdAndDeletedFalse(request.getClassGroupId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND));
+            if (student.getMajorId() == null && cg.getMajorId() != null) {
+                student.setMajorId(cg.getMajorId());
+            }
         }
 
-        if (request.getMajorId() != null && !majorRepository.existsByIdAndDeletedFalse(request.getMajorId())) {
+        if (student.getMajorId() != null && !majorRepository.existsByIdAndDeletedFalse(student.getMajorId())) {
             throw new AppException(ErrorCode.MAJOR_NOT_FOUND);
         }
 
@@ -158,8 +161,8 @@ public class StudentServiceImpl implements StudentService {
             String newEmail = request.getEmail().trim();
             Long currentUserId = student.getUserId();
             boolean emailInUseByOtherUser = currentUserId != null
-                    ? userRepository.existsByEmailAndIdNot(newEmail, currentUserId)
-                    : userRepository.existsByEmail(newEmail);
+                    ? userRepository.existsByEmailAndIdNotAndDeletedFalse(newEmail, currentUserId)
+                    : userRepository.existsByEmailAndDeletedFalse(newEmail);
             boolean emailInUseByOtherStudent = studentRepository.existsByEmailAndIdNotAndDeletedFalse(newEmail, id);
             boolean emailInUseByTeacher = teacherRepository.existsByEmailAndDeletedFalse(newEmail);
 
@@ -171,15 +174,15 @@ public class StudentServiceImpl implements StudentService {
         studentMapper.updateStudent(student, request);
 
         if (request.getClassGroupId() != null) {
-            if (!classGroupRepository.existsByIdAndDeletedFalse(request.getClassGroupId())) {
-                throw new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND);
+            ClassGroup cg = classGroupRepository.findByIdAndDeletedFalse(request.getClassGroupId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CLASS_GROUP_NOT_FOUND));
+            if (student.getMajorId() == null && cg.getMajorId() != null) {
+                student.setMajorId(cg.getMajorId());
             }
         }
 
-        if (request.getMajorId() != null) {
-            if (!majorRepository.existsByIdAndDeletedFalse(request.getMajorId())) {
-                throw new AppException(ErrorCode.MAJOR_NOT_FOUND);
-            }
+        if (student.getMajorId() != null && !majorRepository.existsByIdAndDeletedFalse(student.getMajorId())) {
+            throw new AppException(ErrorCode.MAJOR_NOT_FOUND);
         }
 
         if (request.getStatus() != null) {
@@ -214,6 +217,7 @@ public class StudentServiceImpl implements StudentService {
         if (student.getUserId() != null) {
             userRepository.findByIdAndDeletedFalse(student.getUserId()).ifPresent(u -> {
                 u.setDeleted(true);
+                u.setDeletedKey(String.valueOf(u.getId()));
                 userRepository.save(u);
             });
         }
@@ -221,60 +225,30 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BasePaginationRS<StudentResponse> search(StudentSearchPaginationRQ search) {
         if (search == null) search = new StudentSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
 
-        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
-        String codeFilter = search.getStudentCode() != null ? search.getStudentCode().trim().toLowerCase() : "";
-        String nameFilter = search.getFullName() != null ? search.getFullName().trim().toLowerCase() : "";
-        String emailFilter = search.getEmail() != null ? search.getEmail().trim().toLowerCase() : "";
-        Long majorFilter = search.getMajorId();
-        Long classGroupFilter = search.getClassGroupId();
-        Long provinceFilter = search.getProvinceId();
-        Long districtFilter = search.getDistrictId();
-        Long wardFilter = search.getWardId();
+        org.springframework.data.jpa.domain.Specification<Student> spec = com.toan.university_management.specification.masterdata.StudentSpecification.filter(search);
+        Page<Student> studentPage = studentRepository.findAll(spec, pageable);
+        List<StudentResponse> content = enrichStudentResponses(studentPage.getContent());
 
-        List<StudentResponse> all = enrichStudentResponses(studentRepository.findAllByDeletedFalse()).stream()
-                .filter(s -> {
-                    if (majorFilter != null && majorFilter > 0 && (s.getMajorId() == null || !s.getMajorId().equals(majorFilter))) return false;
-                    if (classGroupFilter != null && classGroupFilter > 0 && (s.getClassGroupId() == null || !s.getClassGroupId().equals(classGroupFilter))) return false;
-                    if (provinceFilter != null && provinceFilter > 0 && (s.getProvinceId() == null || !s.getProvinceId().equals(provinceFilter))) return false;
-                    if (districtFilter != null && districtFilter > 0 && (s.getDistrictId() == null || !s.getDistrictId().equals(districtFilter))) return false;
-                    if (wardFilter != null && wardFilter > 0 && (s.getWardId() == null || !s.getWardId().equals(wardFilter))) return false;
-
-                    if (!kw.isEmpty()) {
-                        String full = ((s.getStudentCode() != null ? s.getStudentCode() : "") + " "
-                                + (s.getFullName() != null ? s.getFullName() : "") + " "
-                                + (s.getEmail() != null ? s.getEmail() : "") + " "
-                                + (s.getClassGroupName() != null ? s.getClassGroupName() : "") + " "
-                                + (s.getMajorName() != null ? s.getMajorName() : "") + " "
-                                + (s.getFullAddress() != null ? s.getFullAddress() : "")).toLowerCase();
-                        if (!full.contains(kw)) return false;
-                    }
-                    if (!codeFilter.isEmpty()) {
-                        if (s.getStudentCode() == null || !s.getStudentCode().toLowerCase().contains(codeFilter)) return false;
-                    }
-                    if (!nameFilter.isEmpty()) {
-                        if (s.getFullName() == null || !s.getFullName().toLowerCase().contains(nameFilter)) return false;
-                    }
-                    if (!emailFilter.isEmpty()) {
-                        if (s.getEmail() == null || !s.getEmail().toLowerCase().contains(emailFilter)) return false;
-                    }
-                    return true;
-                })
-                .toList();
-
-        return com.toan.university_management.common.util.PaginationUtils.paginateList(all, page, size);
+        return BasePaginationRS.<StudentResponse>builder()
+                .items(content)
+                .totalCount(studentPage.getTotalElements())
+                .totalPage(studentPage.getTotalPages())
+                .build();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<StudentResponse> export(com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ search) {
-        com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ copy = search != null ? search : new com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ();
-        copy.setPageNumber(0);
-        copy.setPageSize(Integer.MAX_VALUE);
-        return search(copy).getItems();
+        org.springframework.data.jpa.domain.Specification<Student> spec = com.toan.university_management.specification.masterdata.StudentSpecification.filter(search);
+        List<Student> students = studentRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "studentCode"));
+        return enrichStudentResponses(students);
     }
 
     private StudentResponse enrichStudentResponse(Student student) {

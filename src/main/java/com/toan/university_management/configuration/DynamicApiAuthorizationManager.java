@@ -37,14 +37,24 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
     private static final List<String> AUTHENTICATED_SELF_ENDPOINTS = List.of(
             "/users/myInfo",
             "/users/change-password",
-            "/notifications/**",
-            "/schedules/**",
-            "/exam-schedules/**",
-            "/teaching-schedules/**",
-            "/grades/**",
-            "/enrollments/**",
-            "/subject-classes/**",
-            "/tuition-fees/**"
+            "/master-data/**",
+            "/notifications/my",
+            "/notifications/summary",
+            "/notifications/unread-count",
+            "/notifications/*/read",
+            "/notifications/read-all",
+            "/schedules/my",
+            "/exam-schedules/my",
+            "/grades/my-transcript",
+            "/tuition-fees/my-summary",
+            "/tuition-fees/my-history",
+            "/attendance/my-summary",
+            "/attendance/my-details",
+            "/enrollments/register",
+            "/enrollments/cancel/**",
+            "/enrollments/my-registrations/**",
+            "/enrollments/my-registrations",
+            "/enrollments/available-classes"
     );
 
     @Override
@@ -66,8 +76,8 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
             return new AuthorizationDecision(true);
         }
 
-        // 2. Allow Public POST endpoints & DB marked isPublic permissions
-        if ("POST".equalsIgnoreCase(method) && PUBLIC_POST_ENDPOINTS.contains(path)) {
+        // 2. Allow Public endpoints (/master-data, auth endpoints) & DB marked isPublic permissions
+        if (antPathMatcher.match("/master-data/**", path) || ("POST".equalsIgnoreCase(method) && PUBLIC_POST_ENDPOINTS.contains(path))) {
             return new AuthorizationDecision(true);
         }
 
@@ -111,8 +121,8 @@ public class DynamicApiAuthorizationManager implements AuthorizationManager<Requ
         // 4. Dynamic API permission matching via User -> UserRole (roleId) -> RolePermission (permissionId)
         try {
             String username = authentication.getName();
-            var userOpt = userRepository.findByUsername(username)
-                    .or(() -> userRepository.findByUsernameIgnoreCase(username));
+            var userOpt = userRepository.findByUsernameAndDeletedFalse(username)
+                    .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(username));
 
             if (userOpt.isPresent()) {
                 Long userId = userOpt.get().getId();

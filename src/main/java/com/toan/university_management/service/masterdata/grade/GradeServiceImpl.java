@@ -149,6 +149,8 @@ public class GradeServiceImpl implements GradeService {
         SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(subjectClassId)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
 
+        checkTeacherPermission(subjectClass);
+
         Subject subject = null;
         if (subjectClass.getSubjectId() != null) {
             subject = subjectRepository.findByIdAndDeletedFalse(subjectClass.getSubjectId()).orElse(null);
@@ -190,6 +192,8 @@ public class GradeServiceImpl implements GradeService {
     public SubjectClassGradeSummaryResponse submitGrades(Long subjectClassId) {
         SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(subjectClassId)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
+
+        checkTeacherPermission(subjectClass);
 
         List<Enrollment> enrollments = enrollmentRepository.findAllBySubjectClassIdAndDeletedFalse(subjectClassId);
         if (enrollments.isEmpty()) {
@@ -498,5 +502,31 @@ public class GradeServiceImpl implements GradeService {
             }
             return resp;
         }).toList();
+    }
+
+    private void checkTeacherPermission(SubjectClass subjectClass) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return;
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a ->
+                "ROLE_ADMIN".equalsIgnoreCase(a.getAuthority()) || "ADMIN".equalsIgnoreCase(a.getAuthority())
+        );
+        if (isAdmin) return;
+
+        boolean isTeacher = auth.getAuthorities().stream().anyMatch(a ->
+                "ROLE_TEACHER".equalsIgnoreCase(a.getAuthority()) || "TEACHER".equalsIgnoreCase(a.getAuthority())
+        );
+        if (isTeacher) {
+            String username = auth.getName();
+            Teacher teacher = userRepository.findByUsername(username)
+                    .or(() -> userRepository.findByUsernameIgnoreCase(username))
+                    .flatMap(u -> teacherRepository.findByUserIdAndDeletedFalse(u.getId()))
+                    .or(() -> teacherRepository.findByTeacherCodeAndDeletedFalse(username))
+                    .or(() -> teacherRepository.findByEmailAndDeletedFalse(username))
+                    .orElse(null);
+
+            if (teacher != null && subjectClass.getTeacherId() != null && !subjectClass.getTeacherId().equals(teacher.getId())) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+        }
     }
 }

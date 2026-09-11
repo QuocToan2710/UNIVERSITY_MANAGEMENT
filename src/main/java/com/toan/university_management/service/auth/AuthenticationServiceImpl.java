@@ -78,10 +78,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         String reqUsername = request.getUsername().trim();
-        User user = userRepository.findByUsername(reqUsername)
-                .or(() -> userRepository.findByUsernameIgnoreCase(reqUsername))
-                .or(() -> userRepository.findByUserCode(reqUsername))
-                .or(() -> userRepository.findByUserCodeIgnoreCase(reqUsername))
+        User user = userRepository.findByUsernameAndDeletedFalse(reqUsername)
+                .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(reqUsername))
+                .or(() -> userRepository.findByUserCodeAndDeletedFalse(reqUsername))
+                .or(() -> userRepository.findByUserCodeIgnoreCaseAndDeletedFalse(reqUsername))
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
         if (user.getPassword() == null || user.getPassword().isBlank()) {
@@ -162,8 +162,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         long expirationMillis = expiryTime != null ? expiryTime.getTime() - System.currentTimeMillis() : 0;
         tokenBlacklistService.blacklistToken(jit, expirationMillis);
 
-        var user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByUsernameIgnoreCase(username))
+        var user = userRepository.findByUsernameAndDeletedFalse(username)
+                .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(username))
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
         var token = generateToken(user);
@@ -179,9 +179,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
         }
         String input = request.getEmail().trim();
-        User user = userRepository.findByEmail(input)
-                .or(() -> userRepository.findByUsername(input))
-                .or(() -> userRepository.findByUsernameIgnoreCase(input))
+        User user = userRepository.findByEmailAndDeletedFalse(input)
+                .or(() -> userRepository.findByUsernameAndDeletedFalse(input))
+                .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(input))
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
 
         if (user.getEmail() == null || user.getEmail().isBlank()) {
@@ -198,9 +198,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
         }
         String input = request.getEmail().trim();
-        User user = userRepository.findByEmail(input)
-                .or(() -> userRepository.findByUsername(input))
-                .or(() -> userRepository.findByUsernameIgnoreCase(input))
+        User user = userRepository.findByEmailAndDeletedFalse(input)
+                .or(() -> userRepository.findByUsernameAndDeletedFalse(input))
+                .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(input))
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
 
         boolean isValidOtp = otpService.verifyOtp(user.getEmail(), request.getOtp());

@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -62,6 +63,7 @@ public class NotificationController {
     }
 
     @PostMapping("/send")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<NotificationResponse> sendNotification(
             @RequestBody @Valid NotificationSendRequest request
     ) {
@@ -72,6 +74,7 @@ public class NotificationController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> deleteNotification(@PathVariable Long id) {
         notificationService.deleteNotification(id);
         return ApiResponse.<Void>builder()

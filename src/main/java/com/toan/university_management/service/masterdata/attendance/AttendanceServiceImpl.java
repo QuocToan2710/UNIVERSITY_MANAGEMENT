@@ -114,6 +114,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         SubjectClass sc = subjectClassRepository.findByIdAndDeletedFalse(request.getSubjectClassId())
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
 
+        checkTeacherPermission(sc);
+
         int sessionNum = request.getSessionNumber();
         String sessionCode = String.format("ATT-%s-B%02d", sc.getSubjectClassCode(), sessionNum);
 
@@ -135,6 +137,10 @@ public class AttendanceServiceImpl implements AttendanceService {
         AttendanceSession session = attendanceSessionRepository.findByIdAndDeletedFalse(sessionId)
                 .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_SESSION_NOT_FOUND));
 
+        SubjectClass sc = subjectClassRepository.findByIdAndDeletedFalse(session.getSubjectClassId())
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
+        checkTeacherPermission(sc);
+
         attendanceSessionMapper.updateAttendanceSession(session, request);
         AttendanceSession saved = attendanceSessionRepository.save(session);
         return enrichSessionResponse(saved);
@@ -144,6 +150,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     public void deleteSession(Long sessionId) {
         AttendanceSession session = attendanceSessionRepository.findByIdAndDeletedFalse(sessionId)
                 .orElseThrow(() -> new AppException(ErrorCode.ATTENDANCE_SESSION_NOT_FOUND));
+
+        SubjectClass sc = subjectClassRepository.findByIdAndDeletedFalse(session.getSubjectClassId())
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
+        checkTeacherPermission(sc);
+
         attendanceSessionRepository.delete(session);
     }
 
@@ -219,6 +230,8 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         SubjectClass sc = subjectClassRepository.findByIdAndDeletedFalse(session.getSubjectClassId())
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
+
+        checkTeacherPermission(sc);
 
         if (request.getTopic() != null && !request.getTopic().isBlank()) {
             session.setTopic(request.getTopic());
@@ -721,5 +734,31 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         // 3. Check student by email
         return studentRepository.findByEmailAndDeletedFalse(principalName).orElse(null);
+    }
+
+    private void checkTeacherPermission(SubjectClass subjectClass) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return;
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a ->
+                "ROLE_ADMIN".equalsIgnoreCase(a.getAuthority()) || "ADMIN".equalsIgnoreCase(a.getAuthority())
+        );
+        if (isAdmin) return;
+
+        boolean isTeacher = auth.getAuthorities().stream().anyMatch(a ->
+                "ROLE_TEACHER".equalsIgnoreCase(a.getAuthority()) || "TEACHER".equalsIgnoreCase(a.getAuthority())
+        );
+        if (isTeacher) {
+            String username = auth.getName();
+            Teacher teacher = userRepository.findByUsername(username)
+                    .or(() -> userRepository.findByUsernameIgnoreCase(username))
+                    .flatMap(u -> teacherRepository.findByUserIdAndDeletedFalse(u.getId()))
+                    .or(() -> teacherRepository.findByTeacherCodeAndDeletedFalse(username))
+                    .or(() -> teacherRepository.findByEmailAndDeletedFalse(username))
+                    .orElse(null);
+
+            if (teacher != null && subjectClass.getTeacherId() != null && !subjectClass.getTeacherId().equals(teacher.getId())) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+        }
     }
 }

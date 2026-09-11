@@ -40,11 +40,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(UserRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (userRepository.existsByEmail(request.getEmail().trim())) {
+            if (userRepository.existsByEmailAndDeletedFalse(request.getEmail().trim())) {
                 throw new AppException(ErrorCode.EMAIL_EXISTED);
             }
         }
@@ -116,7 +116,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (userRepository.existsByEmailAndIdNot(request.getEmail().trim(), user.getId())) {
+            if (userRepository.existsByEmailAndIdNotAndDeletedFalse(request.getEmail().trim(), user.getId())) {
                 throw new AppException(ErrorCode.EMAIL_EXISTED);
             }
         }
@@ -186,8 +186,8 @@ public class UserServiceImpl implements UserService {
         }
         String name = authentication.getName();
 
-        User user = userRepository.findByUsername(name)
-                .or(() -> userRepository.findByUsernameIgnoreCase(name))
+        User user = userRepository.findByUsernameAndDeletedFalse(name)
+                .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(name))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return enrichUserResponse(user);
     }
@@ -197,6 +197,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         user.setDeleted(true);
+        user.setDeletedKey(String.valueOf(user.getId()));
         userRepository.save(user);
     }
 

@@ -61,7 +61,7 @@ public class TeacherServiceImpl implements TeacherService {
     @Transactional(rollbackFor = Exception.class)
     public TeacherResponse createTeacher(TeacherRequest request) {
         if (teacherRepository.existsByTeacherCodeAndDeletedFalse(request.getTeacherCode())
-                || userRepository.existsByUsername(request.getTeacherCode())) {
+                || userRepository.existsByUsernameAndDeletedFalse(request.getTeacherCode())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         if (request.getDepartmentId() != null && !departmentRepository.existsByIdAndDeletedFalse(request.getDepartmentId())) {
@@ -72,7 +72,7 @@ public class TeacherServiceImpl implements TeacherService {
                 ? request.getEmail().trim()
                 : request.getTeacherCode().toLowerCase() + "@university.edu.vn";
 
-        if (userRepository.existsByEmail(email)
+        if (userRepository.existsByEmailAndDeletedFalse(email)
                 || teacherRepository.existsByEmailAndDeletedFalse(email)
                 || studentRepository.existsByEmailAndDeletedFalse(email)) {
             throw new AppException(ErrorCode.EMAIL_EXISTED);
@@ -145,8 +145,8 @@ public class TeacherServiceImpl implements TeacherService {
             String newEmail = request.getEmail().trim();
             Long currentUserId = teacher.getUserId();
             boolean emailInUseByOtherUser = currentUserId != null
-                    ? userRepository.existsByEmailAndIdNot(newEmail, currentUserId)
-                    : userRepository.existsByEmail(newEmail);
+                    ? userRepository.existsByEmailAndIdNotAndDeletedFalse(newEmail, currentUserId)
+                    : userRepository.existsByEmailAndDeletedFalse(newEmail);
             boolean emailInUseByOtherTeacher = teacherRepository.existsByEmailAndIdNotAndDeletedFalse(newEmail, id);
             boolean emailInUseByStudent = studentRepository.existsByEmailAndDeletedFalse(newEmail);
 
@@ -185,6 +185,7 @@ public class TeacherServiceImpl implements TeacherService {
         if (teacher.getUserId() != null) {
             userRepository.findByIdAndDeletedFalse(teacher.getUserId()).ifPresent(u -> {
                 u.setDeleted(true);
+                u.setDeletedKey(String.valueOf(u.getId()));
                 userRepository.save(u);
             });
         }
@@ -197,65 +198,25 @@ public class TeacherServiceImpl implements TeacherService {
         if (search == null) search = new TeacherSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
 
-        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
-        String code = search.getTeacherCode() != null ? search.getTeacherCode().trim().toLowerCase() : "";
-        String name = search.getFullName() != null ? search.getFullName().trim().toLowerCase() : "";
-        String email = search.getEmail() != null ? search.getEmail().trim().toLowerCase() : "";
-        String degree = search.getDegree() != null ? search.getDegree().trim().toLowerCase() : "";
-        Long deptId = search.getDepartmentId();
-        Long provinceId = search.getProvinceId();
-        Long districtId = search.getDistrictId();
-        Long wardId = search.getWardId();
+        org.springframework.data.jpa.domain.Specification<Teacher> spec = com.toan.university_management.specification.masterdata.TeacherSpecification.filter(search);
+        org.springframework.data.domain.Page<Teacher> teacherPage = teacherRepository.findAll(spec, pageable);
+        List<TeacherResponse> content = enrichResponses(teacherPage.getContent());
 
-        List<TeacherResponse> all = getAllTeachers().stream()
-                .filter(t -> {
-                    if (deptId != null && !Objects.equals(t.getDepartmentId(), deptId)) return false;
-                    if (provinceId != null && !Objects.equals(t.getProvinceId(), provinceId)) return false;
-                    if (districtId != null && !Objects.equals(t.getDistrictId(), districtId)) return false;
-                    if (wardId != null && !Objects.equals(t.getWardId(), wardId)) return false;
-                    if (!kw.isEmpty()) {
-                        String full = ((t.getTeacherCode() != null ? t.getTeacherCode() : "") + " "
-                                + (t.getFullName() != null ? t.getFullName() : "") + " "
-                                + (t.getEmail() != null ? t.getEmail() : "") + " "
-                                + (t.getDegree() != null ? t.getDegree() : "") + " "
-                                + (t.getDepartmentName() != null ? t.getDepartmentName() : "") + " "
-                                + (t.getFullAddress() != null ? t.getFullAddress() : "")).toLowerCase();
-                        if (!full.contains(kw)) return false;
-                    }
-                    if (!code.isEmpty() && (t.getTeacherCode() == null || !t.getTeacherCode().toLowerCase().contains(code))) return false;
-                    if (!name.isEmpty() && (t.getFullName() == null || !t.getFullName().toLowerCase().contains(name))) return false;
-                    if (!email.isEmpty() && (t.getEmail() == null || !t.getEmail().toLowerCase().contains(email))) return false;
-                    if (!degree.isEmpty() && (t.getDegree() == null || !t.getDegree().toLowerCase().contains(degree))) return false;
-                    return true;
-                })
-                .toList();
-        return com.toan.university_management.common.util.PaginationUtils.paginateList(all, page, size);
+        return BasePaginationRS.<TeacherResponse>builder()
+                .items(content)
+                .totalCount(teacherPage.getTotalElements())
+                .totalPage(teacherPage.getTotalPages())
+                .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TeacherResponse> export(com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ search) {
-        com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ copy = search != null
-                ? com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ.builder()
-                .keyword(search.getKeyword())
-                .teacherCode(search.getTeacherCode())
-                .fullName(search.getFullName())
-                .email(search.getEmail())
-                .phoneNumber(search.getPhoneNumber())
-                .degree(search.getDegree())
-                .departmentId(search.getDepartmentId())
-                .provinceId(search.getProvinceId())
-                .districtId(search.getDistrictId())
-                .wardId(search.getWardId())
-                .pageNumber(0)
-                .pageSize(Integer.MAX_VALUE)
-                .build()
-                : com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ.builder()
-                .pageNumber(0)
-                .pageSize(Integer.MAX_VALUE)
-                .build();
-        return search(copy).getItems();
+        org.springframework.data.jpa.domain.Specification<Teacher> spec = com.toan.university_management.specification.masterdata.TeacherSpecification.filter(search);
+        List<Teacher> teachers = teacherRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "teacherCode"));
+        return enrichResponses(teachers);
     }
 
     private TeacherResponse enrichResponse(Teacher teacher) {

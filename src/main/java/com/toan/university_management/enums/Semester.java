@@ -9,11 +9,10 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public enum StudentStatus {
-    ACTIVE("ACTIVE", "Đang học", "ACTIVE"),
-    GRADUATED("GRADUATED", "Đã tốt nghiệp", "GRADUATED"),
-    SUSPENDED("SUSPENDED", "Bảo lưu kết quả", "SUSPENDED"),
-    DROPPED("DROPPED", "Thôi học", "DROPPED");
+public enum Semester {
+    SEMESTER_1("1", "Học kỳ 1", "HK1"),
+    SEMESTER_2("2", "Học kỳ 2", "HK2"),
+    SEMESTER_3("3", "Học kỳ Hè", "HK3");
 
     String value;
     String label;
@@ -23,4 +22,3 @@ public enum StudentStatus {
         return new SelectOptionResponse(value, label, code, null);
     }
 }
-

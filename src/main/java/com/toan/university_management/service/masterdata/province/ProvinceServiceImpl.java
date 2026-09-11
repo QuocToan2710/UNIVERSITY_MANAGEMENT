@@ -97,53 +97,29 @@ public class ProvinceServiceImpl implements ProvinceService {
         if (search == null) search = new ProvinceSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "provinceName"));
 
-        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
-        String code = search.getProvinceCode() != null ? search.getProvinceCode().trim().toLowerCase() : "";
-        String name = search.getProvinceName() != null ? search.getProvinceName().trim().toLowerCase() : "";
-        String type = search.getProvinceType() != null ? search.getProvinceType().trim().toLowerCase() : "";
-
-        List<ProvinceResponse> all = provinceRepository.findAllByDeletedFalseOrderByProvinceNameAsc().stream()
+        org.springframework.data.jpa.domain.Specification<Province> spec = com.toan.university_management.specification.masterdata.ProvinceSpecification.filter(search);
+        org.springframework.data.domain.Page<Province> provincePage = provinceRepository.findAll(spec, pageable);
+        List<ProvinceResponse> content = provincePage.getContent().stream()
                 .map(this::toResponse)
-                .filter(p -> {
-                    if (!kw.isEmpty()) {
-                        String full = ((p.getProvinceCode() != null ? p.getProvinceCode() : "") + " "
-                                + (p.getProvinceName() != null ? p.getProvinceName() : "") + " "
-                                + (p.getProvinceType() != null ? p.getProvinceType() : "")).toLowerCase();
-                        if (!full.contains(kw)) return false;
-                    }
-                    if (!code.isEmpty() && (p.getProvinceCode() == null || !p.getProvinceCode().toLowerCase().contains(code))) return false;
-                    if (!name.isEmpty() && (p.getProvinceName() == null || !p.getProvinceName().toLowerCase().contains(name))) return false;
-                    if (!type.isEmpty() && (p.getProvinceType() == null || !p.getProvinceType().toLowerCase().contains(type))) return false;
-                    return true;
-                })
                 .toList();
 
-        int total = all.size();
-        int from = Math.min(page * size, total);
-        int to = Math.min(from + size, total);
-
         return BasePaginationRS.<ProvinceResponse>builder()
-                .items(all.subList(from, to))
-                .totalCount(total)
-                .totalPage((int) Math.ceil((double) total / size))
+                .items(content)
+                .totalCount(provincePage.getTotalElements())
+                .totalPage(provincePage.getTotalPages())
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProvinceResponse> export(ProvinceSearchPaginationRQ search) {
-        ProvinceSearchPaginationRQ copy = search != null
-                ? ProvinceSearchPaginationRQ.builder()
-                .keyword(search.getKeyword())
-                .provinceCode(search.getProvinceCode())
-                .provinceName(search.getProvinceName())
-                .provinceType(search.getProvinceType())
-                .pageNumber(0)
-                .pageSize(Integer.MAX_VALUE)
-                .build()
-                : ProvinceSearchPaginationRQ.builder().pageNumber(0).pageSize(Integer.MAX_VALUE).build();
-        return search(copy).getItems();
+        org.springframework.data.jpa.domain.Specification<Province> spec = com.toan.university_management.specification.masterdata.ProvinceSpecification.filter(search);
+        return provinceRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "provinceName"))
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private ProvinceResponse toResponse(Province p) {

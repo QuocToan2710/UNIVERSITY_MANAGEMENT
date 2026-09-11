@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class UserController {
     UserService userService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<UserResponse> createUser(@RequestBody @Valid UserRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.createUser(request))
@@ -30,6 +32,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<org.springframework.data.domain.Page<UserResponse>> getUsers(
             @org.springframework.data.web.PageableDefault(page = 0, size = 10, sort = "id") org.springframework.data.domain.Pageable pageable) {
         return ApiResponse.<org.springframework.data.domain.Page<UserResponse>>builder()
@@ -38,6 +41,7 @@ public class UserController {
     }
 
     @GetMapping("/myInfo")
+    @PreAuthorize("isAuthenticated()")
     ApiResponse<UserResponse> getMyInfo() {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getMyInfo())
@@ -45,6 +49,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<UserResponse> getUser(@PathVariable("userId") Long userId) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getUserById(userId))
@@ -52,6 +57,7 @@ public class UserController {
     }
 
     @PutMapping("update")
+    @PreAuthorize("isAuthenticated()")
     ApiResponse<UserResponse> updateUser(@RequestBody UserRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUser(request))
@@ -59,6 +65,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/roles")
+    @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<UserResponse> updateUserRoles(@PathVariable("userId") Long userId, @RequestBody List<String> roleNames) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUserRoles(userId, roleNames))
@@ -66,6 +73,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<String> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
         return ApiResponse.<String>builder().result("User has been deleted successfully").build();

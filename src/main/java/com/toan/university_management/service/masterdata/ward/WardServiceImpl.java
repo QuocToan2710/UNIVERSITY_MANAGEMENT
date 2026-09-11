@@ -122,60 +122,36 @@ public class WardServiceImpl implements WardService {
         if (search == null) search = new WardSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "wardName"));
 
-        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
-        String code = search.getWardCode() != null ? search.getWardCode().trim().toLowerCase() : "";
-        String name = search.getWardName() != null ? search.getWardName().trim().toLowerCase() : "";
-        String type = search.getWardType() != null ? search.getWardType().trim().toLowerCase() : "";
-        Long districtId = search.getDistrictId();
-        Long provinceId = search.getProvinceId();
+        Set<Long> matchedDistrictIds = null;
+        if (search.getProvinceId() != null && search.getProvinceId() > 0 && (search.getDistrictId() == null || search.getDistrictId() <= 0)) {
+            matchedDistrictIds = districtRepository.findAllByProvinceIdAndDeletedFalseOrderByDistrictNameAsc(search.getProvinceId())
+                    .stream().map(District::getId).collect(Collectors.toSet());
+        }
 
-        List<WardResponse> all = getAllWards(null).stream()
-                .filter(w -> {
-                    if (districtId != null && !Objects.equals(w.getDistrictId(), districtId)) return false;
-                    if (provinceId != null && !Objects.equals(w.getProvinceId(), provinceId)) return false;
-                    if (!kw.isEmpty()) {
-                        String full = ((w.getWardCode() != null ? w.getWardCode() : "") + " "
-                                + (w.getWardName() != null ? w.getWardName() : "") + " "
-                                + (w.getWardType() != null ? w.getWardType() : "") + " "
-                                + (w.getDistrictName() != null ? w.getDistrictName() : "") + " "
-                                + (w.getProvinceName() != null ? w.getProvinceName() : "")).toLowerCase();
-                        if (!full.contains(kw)) return false;
-                    }
-                    if (!code.isEmpty() && (w.getWardCode() == null || !w.getWardCode().toLowerCase().contains(code))) return false;
-                    if (!name.isEmpty() && (w.getWardName() == null || !w.getWardName().toLowerCase().contains(name))) return false;
-                    if (!type.isEmpty() && (w.getWardType() == null || !w.getWardType().toLowerCase().contains(type))) return false;
-                    return true;
-                })
-                .toList();
-
-        int total = all.size();
-        int from = Math.min(page * size, total);
-        int to = Math.min(from + size, total);
+        org.springframework.data.jpa.domain.Specification<Ward> spec = com.toan.university_management.specification.masterdata.WardSpecification.filter(search, matchedDistrictIds);
+        org.springframework.data.domain.Page<Ward> wardPage = wardRepository.findAll(spec, pageable);
+        List<WardResponse> content = enrichResponses(wardPage.getContent());
 
         return BasePaginationRS.<WardResponse>builder()
-                .items(all.subList(from, to))
-                .totalCount(total)
-                .totalPage((int) Math.ceil((double) total / size))
+                .items(content)
+                .totalCount(wardPage.getTotalElements())
+                .totalPage(wardPage.getTotalPages())
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<WardResponse> export(WardSearchPaginationRQ search) {
-        WardSearchPaginationRQ copy = search != null
-                ? WardSearchPaginationRQ.builder()
-                .keyword(search.getKeyword())
-                .wardCode(search.getWardCode())
-                .wardName(search.getWardName())
-                .wardType(search.getWardType())
-                .districtId(search.getDistrictId())
-                .provinceId(search.getProvinceId())
-                .pageNumber(0)
-                .pageSize(Integer.MAX_VALUE)
-                .build()
-                : WardSearchPaginationRQ.builder().pageNumber(0).pageSize(Integer.MAX_VALUE).build();
-        return search(copy).getItems();
+        Set<Long> matchedDistrictIds = null;
+        if (search != null && search.getProvinceId() != null && search.getProvinceId() > 0 && (search.getDistrictId() == null || search.getDistrictId() <= 0)) {
+            matchedDistrictIds = districtRepository.findAllByProvinceIdAndDeletedFalseOrderByDistrictNameAsc(search.getProvinceId())
+                    .stream().map(District::getId).collect(Collectors.toSet());
+        }
+        org.springframework.data.jpa.domain.Specification<Ward> spec = com.toan.university_management.specification.masterdata.WardSpecification.filter(search, matchedDistrictIds);
+        List<Ward> wards = wardRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "wardName"));
+        return enrichResponses(wards);
     }
 
     private WardResponse enrichResponse(Ward w) {

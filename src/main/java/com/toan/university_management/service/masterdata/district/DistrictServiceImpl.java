@@ -119,56 +119,25 @@ public class DistrictServiceImpl implements DistrictService {
         if (search == null) search = new DistrictSearchPaginationRQ();
         int page = Math.max(0, search.getPageNumber());
         int size = search.getPageSize() > 0 ? search.getPageSize() : 10;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "districtName"));
 
-        String kw = search.getKeyword() != null ? search.getKeyword().trim().toLowerCase() : "";
-        String code = search.getDistrictCode() != null ? search.getDistrictCode().trim().toLowerCase() : "";
-        String name = search.getDistrictName() != null ? search.getDistrictName().trim().toLowerCase() : "";
-        String type = search.getDistrictType() != null ? search.getDistrictType().trim().toLowerCase() : "";
-        Long provinceId = search.getProvinceId();
-
-        List<DistrictResponse> all = getAllDistricts(null).stream()
-                .filter(d -> {
-                    if (provinceId != null && !Objects.equals(d.getProvinceId(), provinceId)) return false;
-                    if (!kw.isEmpty()) {
-                        String full = ((d.getDistrictCode() != null ? d.getDistrictCode() : "") + " "
-                                + (d.getDistrictName() != null ? d.getDistrictName() : "") + " "
-                                + (d.getDistrictType() != null ? d.getDistrictType() : "") + " "
-                                + (d.getProvinceName() != null ? d.getProvinceName() : "")).toLowerCase();
-                        if (!full.contains(kw)) return false;
-                    }
-                    if (!code.isEmpty() && (d.getDistrictCode() == null || !d.getDistrictCode().toLowerCase().contains(code))) return false;
-                    if (!name.isEmpty() && (d.getDistrictName() == null || !d.getDistrictName().toLowerCase().contains(name))) return false;
-                    if (!type.isEmpty() && (d.getDistrictType() == null || !d.getDistrictType().toLowerCase().contains(type))) return false;
-                    return true;
-                })
-                .toList();
-
-        int total = all.size();
-        int from = Math.min(page * size, total);
-        int to = Math.min(from + size, total);
+        org.springframework.data.jpa.domain.Specification<District> spec = com.toan.university_management.specification.masterdata.DistrictSpecification.filter(search);
+        org.springframework.data.domain.Page<District> districtPage = districtRepository.findAll(spec, pageable);
+        List<DistrictResponse> content = enrichResponses(districtPage.getContent());
 
         return BasePaginationRS.<DistrictResponse>builder()
-                .items(all.subList(from, to))
-                .totalCount(total)
-                .totalPage((int) Math.ceil((double) total / size))
+                .items(content)
+                .totalCount(districtPage.getTotalElements())
+                .totalPage(districtPage.getTotalPages())
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<DistrictResponse> export(DistrictSearchPaginationRQ search) {
-        DistrictSearchPaginationRQ copy = search != null
-                ? DistrictSearchPaginationRQ.builder()
-                .keyword(search.getKeyword())
-                .districtCode(search.getDistrictCode())
-                .districtName(search.getDistrictName())
-                .districtType(search.getDistrictType())
-                .provinceId(search.getProvinceId())
-                .pageNumber(0)
-                .pageSize(Integer.MAX_VALUE)
-                .build()
-                : DistrictSearchPaginationRQ.builder().pageNumber(0).pageSize(Integer.MAX_VALUE).build();
-        return search(copy).getItems();
+        org.springframework.data.jpa.domain.Specification<District> spec = com.toan.university_management.specification.masterdata.DistrictSpecification.filter(search);
+        List<District> districts = districtRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "districtName"));
+        return enrichResponses(districts);
     }
 
     private DistrictResponse enrichResponse(District d) {

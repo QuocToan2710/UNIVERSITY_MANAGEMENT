@@ -10,6 +10,7 @@ public enum ComboType {
     TEACHER,
     STUDENT,
     CLASS_GROUP,
+    CLASS_GROUP_BY_MAJOR,
     COURSE_CLASS,
     SUBJECT_CLASS,
     DEGREE,

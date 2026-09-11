@@ -18,8 +18,15 @@ public class EmailServiceImpl implements EmailService {
 
     final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:university.notification.system@gmail.com}")
+    @Value("${app.mail.from-email:${spring.mail.username:no-reply@university.edu.vn}}")
     String fromEmail;
+
+    private String resolveSenderEmail() {
+        if (fromEmail != null && fromEmail.contains("@")) {
+            return fromEmail;
+        }
+        return "no-reply@university.edu.vn";
+    }
 
     @Override
     public void sendOtpEmail(String toEmail, String recipientName, String otpCode) {
@@ -68,7 +75,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail, "Hệ Thống Đào Tạo Đại Học");
+            helper.setFrom(resolveSenderEmail(), "Hệ Thống Đào Tạo Đại Học");
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
@@ -145,7 +152,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail, "Hệ Thống Đào Tạo Đại Học");
+            helper.setFrom(resolveSenderEmail(), "Hệ Thống Đào Tạo Đại Học");
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);

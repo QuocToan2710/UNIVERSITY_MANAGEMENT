@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.toan.university_management.enums.*;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -143,6 +146,24 @@ public class MasterDataServiceImpl implements MasterDataService {
                             .build())
                     .toList();
 
+            case CLASS_GROUP_BY_MAJOR -> {
+                if (cascader == null || cascader.isBlank()) {
+                    yield List.of();
+                }
+                Long mId = parseOrFindMajorId(cascader);
+                if (mId == null) {
+                    yield List.of();
+                }
+                yield classGroupRepository.findAllByMajorIdAndDeletedFalse(mId).stream()
+                        .map(c -> SelectOptionResponse.builder()
+                                .value(useCodeAsId ? c.getClassCode() : String.valueOf(c.getId()))
+                                .label(c.getClassName() + " (" + c.getClassCode() + ")")
+                                .code(c.getClassCode())
+                                .extra(String.valueOf(c.getMajorId()))
+                                .build())
+                        .toList();
+            }
+
             case SUBJECT_CLASS, COURSE_CLASS -> subjectClassRepository.findAll().stream()
                     .map(sc -> SelectOptionResponse.builder()
                             .value(useCodeAsId ? sc.getSubjectClassCode() : String.valueOf(sc.getId()))
@@ -151,54 +172,39 @@ public class MasterDataServiceImpl implements MasterDataService {
                             .build())
                     .toList();
 
-            case DEGREE -> List.of(
-                    new SelectOptionResponse("Tiến sĩ", "Tiến sĩ (TS)", "TS", null),
-                    new SelectOptionResponse("Thạc sĩ", "Thạc sĩ (ThS)", "ThS", null),
-                    new SelectOptionResponse("Phó Giáo sư", "Phó Giáo sư (PGS)", "PGS", null),
-                    new SelectOptionResponse("Giáo sư", "Giáo sư (GS)", "GS", null),
-                    new SelectOptionResponse("Cử nhân", "Cử nhân (CN)", "CN", null),
-                    new SelectOptionResponse("Kỹ sư", "Kỹ sư (KS)", "KS", null)
-            );
+            case DEGREE -> Arrays.stream(AcademicDegree.values())
+                    .map(AcademicDegree::toSelectOption)
+                    .toList();
 
-            case EXAM_FORMAT -> List.of(
-                    new SelectOptionResponse("Tự luận", "Tự luận", "WRITTEN", null),
-                    new SelectOptionResponse("Trắc nghiệm", "Trắc nghiệm", "MULTIPLE_CHOICE", null),
-                    new SelectOptionResponse("Thực hành", "Thực hành", "PRACTICAL", null),
-                    new SelectOptionResponse("Báo cáo đồ án", "Báo cáo đồ án", "PROJECT", null)
-            );
+            case EXAM_FORMAT -> Arrays.stream(ExamFormat.values())
+                    .map(ExamFormat::toSelectOption)
+                    .toList();
 
-            case ROOM_STATUS -> List.of(
-                    new SelectOptionResponse("ACTIVE", "Hoạt động", "ACTIVE", null),
-                    new SelectOptionResponse("MAINTENANCE", "Đang bảo trì", "MAINTENANCE", null),
-                    new SelectOptionResponse("INACTIVE", "Tạm khóa", "INACTIVE", null)
-            );
+            case ROOM_STATUS -> Arrays.stream(RoomStatus.values())
+                    .map(RoomStatus::toSelectOption)
+                    .toList();
 
-            case ROOM_TYPE -> List.of(
-                    new SelectOptionResponse("Giảng đường", "Giảng đường", "LECTURE_HALL", null),
-                    new SelectOptionResponse("Phòng máy tính", "Phòng máy tính", "COMPUTER_LAB", null),
-                    new SelectOptionResponse("Phòng thí nghiệm", "Phòng thí nghiệm", "LAB", null),
-                    new SelectOptionResponse("Hội trường", "Hội trường", "AUDITORIUM", null),
-                    new SelectOptionResponse("Phòng thực hành", "Phòng thực hành", "PRACTICE_ROOM", null)
-            );
+            case ROOM_TYPE -> Arrays.stream(RoomType.values())
+                    .map(RoomType::toSelectOption)
+                    .toList();
 
-            case STUDENT_STATUS -> List.of(
-                    new SelectOptionResponse("ACTIVE", "Đang học", "ACTIVE", null),
-                    new SelectOptionResponse("GRADUATED", "Đã tốt nghiệp", "GRADUATED", null),
-                    new SelectOptionResponse("SUSPENDED", "Bảo lưu kết quả", "SUSPENDED", null),
-                    new SelectOptionResponse("DROPPED", "Thôi học", "DROPPED", null)
-            );
+            case STUDENT_STATUS -> Arrays.stream(StudentStatus.values())
+                    .map(StudentStatus::toSelectOption)
+                    .toList();
 
-            case SEMESTER -> List.of(
-                    new SelectOptionResponse("1", "Học kỳ 1", "HK1", null),
-                    new SelectOptionResponse("2", "Học kỳ 2", "HK2", null),
-                    new SelectOptionResponse("3", "Học kỳ Hè", "HK3", null)
-            );
+            case SEMESTER -> Arrays.stream(Semester.values())
+                    .map(Semester::toSelectOption)
+                    .toList();
 
-            case ACADEMIC_YEAR -> List.of(
-                    new SelectOptionResponse("2024-2025", "2024 - 2025", "2024-2025", null),
-                    new SelectOptionResponse("2025-2026", "2025 - 2026", "2025-2026", null),
-                    new SelectOptionResponse("2023-2024", "2023 - 2024", "2023-2024", null)
-            );
+            case ACADEMIC_YEAR -> {
+                int currentYear = java.time.Year.now().getValue();
+                yield java.util.stream.IntStream.rangeClosed(currentYear - 2, currentYear + 2)
+                        .mapToObj(y -> {
+                            String val = y + "-" + (y + 1);
+                            return new SelectOptionResponse(val, val, val, null);
+                        })
+                        .toList();
+            }
 
             case PROVINCE -> provinceRepository.findAllByDeletedFalseOrderByProvinceNameAsc().stream()
                     .map(p -> SelectOptionResponse.builder()
@@ -274,6 +280,17 @@ public class MasterDataServiceImpl implements MasterDataService {
         } catch (NumberFormatException e) {
             return provinceRepository.findByProvinceCodeAndDeletedFalse(cascader)
                     .map(Province::getId)
+                    .orElse(null);
+        }
+    }
+
+    private Long parseOrFindMajorId(String cascader) {
+        if (cascader == null || cascader.isBlank()) return null;
+        try {
+            return Long.parseLong(cascader);
+        } catch (NumberFormatException e) {
+            return majorRepository.findByMajorCodeAndDeletedFalse(cascader)
+                    .map(Major::getId)
                     .orElse(null);
         }
     }

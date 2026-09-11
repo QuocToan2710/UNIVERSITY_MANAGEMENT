@@ -50,10 +50,10 @@ spring:
         enabled: ${REDIS_SSL_ENABLED:false}
 
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:university.notification.system@gmail.com}
-    password: ${MAIL_PASSWORD:}
+    host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+    port: ${MAIL_PORT:2525}
+    username: ${MAIL_USERNAME:2235038cf122a4}
+    password: ${MAIL_PASSWORD:e28331fa0b46a4}
     properties:
       mail:
         smtp:
@@ -75,4 +75,4 @@ cors:
 
 app:
   init-data:
-    enabled: ${INIT_DATA_ENABLED:false}
+    enabled: ${INIT_DATA_ENABLED:true}

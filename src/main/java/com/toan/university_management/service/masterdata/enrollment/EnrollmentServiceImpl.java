@@ -184,13 +184,16 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     public EnrollmentResponse registerStudent(StudentRegistrationRequest request) {
         Student targetStudent = null;
         if (request.getStudentId() != null) {
+            if (!isCurrentUserAdmin()) {
+                Student currentStudent = findCurrentStudentOptional().orElse(null);
+                if (currentStudent == null || !currentStudent.getId().equals(request.getStudentId())) {
+                    throw new AppException(ErrorCode.UNAUTHORIZED);
+                }
+            }
             targetStudent = studentRepository.findByIdAndDeletedFalse(request.getStudentId())
                     .orElseThrow(() -> new AppException(ErrorCode.STUDENT_NOT_FOUND));
         } else {
             targetStudent = findCurrentStudentOptional().orElse(null);
-            if (targetStudent == null && isCurrentUserAdmin()) {
-                targetStudent = studentRepository.findAllByDeletedFalse().stream().findFirst().orElse(null);
-            }
         }
 
         if (targetStudent == null) {
@@ -207,9 +210,6 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Override
     public void cancelRegistration(Long subjectClassId) {
         Student currentStudent = findCurrentStudentOptional().orElse(null);
-        if (currentStudent == null && isCurrentUserAdmin()) {
-            currentStudent = studentRepository.findAllByDeletedFalse().stream().findFirst().orElse(null);
-        }
         if (currentStudent == null) {
             throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
         }

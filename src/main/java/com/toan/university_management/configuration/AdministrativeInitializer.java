@@ -43,9 +43,9 @@ public class AdministrativeInitializer {
         log.info("Initializing Vietnam Post-Merger Administrative Units Master Data...");
 
         try {
-            ClassPathResource resource = new ClassPathResource("administrative_v2_full.json");
+            ClassPathResource resource = new ClassPathResource("administrative_full.json");
             if (!resource.exists()) {
-                resource = new ClassPathResource("administrative_full.json");
+                resource = new ClassPathResource("administrative_v2_full.json");
             }
 
             if (!resource.exists()) {

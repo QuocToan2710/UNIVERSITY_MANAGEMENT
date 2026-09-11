@@ -9,11 +9,13 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public enum StudentStatus {
-    ACTIVE("ACTIVE", "Đang học", "ACTIVE"),
-    GRADUATED("GRADUATED", "Đã tốt nghiệp", "GRADUATED"),
-    SUSPENDED("SUSPENDED", "Bảo lưu kết quả", "SUSPENDED"),
-    DROPPED("DROPPED", "Thôi học", "DROPPED");
+public enum AcademicDegree {
+    DOCTOR("Tiến sĩ", "Tiến sĩ", "TS"),
+    MASTER("Thạc sĩ", "Thạc sĩ", "ThS"),
+    ASSOCIATE_PROFESSOR("Phó Giáo sư", "Phó Giáo sư (PGS)", "PGS"),
+    PROFESSOR("Giáo sư", "Giáo sư (GS)", "GS"),
+    BACHELOR("Cử nhân", "Cử nhân (CN)", "CN"),
+    ENGINEER("Kỹ sư", "Kỹ sư (KS)", "KS");
 
     String value;
     String label;
@@ -23,4 +25,3 @@ public enum StudentStatus {
         return new SelectOptionResponse(value, label, code, null);
     }
 }
-
