@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.schedule;
 
-import com.toan.university_management.dto.request.masterdata.ClassScheduleRequest;
-import com.toan.university_management.dto.response.masterdata.ClassScheduleResponse;
+import com.toan.university_management.model.masterdata.ClassScheduleRequest;
+import com.toan.university_management.model.masterdata.ClassScheduleResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

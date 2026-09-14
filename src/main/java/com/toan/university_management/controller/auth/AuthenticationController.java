@@ -3,13 +3,13 @@ package com.toan.university_management.controller.auth;
 
 import com.nimbusds.jose.JOSEException;
 import com.toan.university_management.annotation.PermissionMeta;
-import com.toan.university_management.dto.request.auth.AuthenticationRequest;
-import com.toan.university_management.dto.request.auth.IntrospectRequest;
-import com.toan.university_management.dto.request.auth.LogoutRequest;
-import com.toan.university_management.dto.request.auth.RefreshRequest;
+import com.toan.university_management.model.auth.AuthenticationRequest;
+import com.toan.university_management.model.auth.IntrospectRequest;
+import com.toan.university_management.model.auth.LogoutRequest;
+import com.toan.university_management.model.auth.RefreshRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.auth.AuthenticationResponse;
-import com.toan.university_management.dto.response.auth.IntrospectResponse;
+import com.toan.university_management.model.auth.AuthenticationResponse;
+import com.toan.university_management.model.auth.IntrospectResponse;
 import com.toan.university_management.service.auth.AuthenticationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -68,7 +68,7 @@ public class AuthenticationController {
 
     @PermissionMeta(value = "Yêu cầu khôi phục mật khẩu qua Email", isPublic = true)
     @PostMapping("/forgot-password")
-    ApiResponse<String> forgotPassword(@RequestBody @jakarta.validation.Valid com.toan.university_management.dto.request.auth.ForgotPasswordRequest request) {
+    ApiResponse<String> forgotPassword(@RequestBody @jakarta.validation.Valid com.toan.university_management.model.auth.ForgotPasswordRequest request) {
         authenticationService.forgotPassword(request);
         return ApiResponse.<String>builder()
                 .result("Mã xác nhận OTP đã được gửi đến địa chỉ email của bạn.")
@@ -77,7 +77,7 @@ public class AuthenticationController {
 
     @PermissionMeta(value = "Xác nhận OTP và đặt lại mật khẩu", isPublic = true)
     @PostMapping("/reset-password")
-    ApiResponse<String> resetPassword(@RequestBody @jakarta.validation.Valid com.toan.university_management.dto.request.auth.ResetPasswordRequest request) {
+    ApiResponse<String> resetPassword(@RequestBody @jakarta.validation.Valid com.toan.university_management.model.auth.ResetPasswordRequest request) {
         authenticationService.resetPassword(request);
         return ApiResponse.<String>builder()
                 .result("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.")

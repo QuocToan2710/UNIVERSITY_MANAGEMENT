@@ -1,7 +1,7 @@
 package com.toan.university_management.mapper.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.EnrollmentRequest;
-import com.toan.university_management.dto.response.masterdata.EnrollmentResponse;
+import com.toan.university_management.model.masterdata.EnrollmentRequest;
+import com.toan.university_management.model.masterdata.EnrollmentResponse;
 import com.toan.university_management.entity.masterdata.Enrollment;
 import org.mapstruct.*;
 

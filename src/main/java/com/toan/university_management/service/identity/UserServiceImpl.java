@@ -1,8 +1,8 @@
 package com.toan.university_management.service.identity;
 
-import com.toan.university_management.dto.request.identity.UserRequest;
-import com.toan.university_management.dto.response.identity.RoleResponse;
-import com.toan.university_management.dto.response.identity.UserResponse;
+import com.toan.university_management.model.identity.UserRequest;
+import com.toan.university_management.model.identity.RoleResponse;
+import com.toan.university_management.model.identity.UserResponse;
 import com.toan.university_management.entity.identity.Role;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.identity.UserRole;

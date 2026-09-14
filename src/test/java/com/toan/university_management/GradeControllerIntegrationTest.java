@@ -1,8 +1,8 @@
 package com.toan.university_management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.toan.university_management.dto.request.masterdata.GradeBatchUpdateRequest;
-import com.toan.university_management.dto.request.masterdata.GradeItemRequest;
+import com.toan.university_management.model.masterdata.GradeBatchUpdateRequest;
+import com.toan.university_management.model.masterdata.GradeItemRequest;
 import com.toan.university_management.entity.masterdata.Enrollment;
 import com.toan.university_management.entity.masterdata.Student;
 import com.toan.university_management.entity.masterdata.Subject;

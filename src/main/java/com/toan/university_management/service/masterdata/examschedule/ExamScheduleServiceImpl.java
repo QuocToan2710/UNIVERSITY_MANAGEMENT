@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.examschedule;
 
-import com.toan.university_management.dto.request.masterdata.ExamScheduleRequest;
-import com.toan.university_management.dto.response.masterdata.ExamScheduleResponse;
+import com.toan.university_management.model.masterdata.ExamScheduleRequest;
+import com.toan.university_management.model.masterdata.ExamScheduleResponse;
 import com.toan.university_management.entity.masterdata.Enrollment;
 import com.toan.university_management.entity.masterdata.ExamSchedule;
 import com.toan.university_management.entity.masterdata.Subject;

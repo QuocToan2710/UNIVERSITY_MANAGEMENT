@@ -1,7 +1,7 @@
 package com.toan.university_management.mapper.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.SubjectRequest;
-import com.toan.university_management.dto.response.masterdata.SubjectResponse;
+import com.toan.university_management.model.masterdata.SubjectRequest;
+import com.toan.university_management.model.masterdata.SubjectResponse;
 import com.toan.university_management.entity.masterdata.Subject;
 import org.mapstruct.*;
 

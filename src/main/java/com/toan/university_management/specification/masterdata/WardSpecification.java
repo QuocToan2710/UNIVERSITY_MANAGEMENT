@@ -1,7 +1,7 @@
 package com.toan.university_management.specification.masterdata;
 
 import com.toan.university_management.common.specification.BaseSpecification;
-import com.toan.university_management.dto.request.masterdata.WardSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.WardSearchPaginationRQ;
 import com.toan.university_management.entity.masterdata.Ward;
 import org.springframework.data.jpa.domain.Specification;
 

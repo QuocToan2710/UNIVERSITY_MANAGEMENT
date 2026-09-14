@@ -1,13 +1,13 @@
 package com.toan.university_management.controller.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.BatchEnrollmentRequest;
-import com.toan.university_management.dto.request.masterdata.ClassGroupEnrollmentRequest;
-import com.toan.university_management.dto.request.masterdata.EnrollmentRequest;
-import com.toan.university_management.dto.request.masterdata.StudentRegistrationRequest;
+import com.toan.university_management.model.masterdata.BatchEnrollmentRequest;
+import com.toan.university_management.model.masterdata.ClassGroupEnrollmentRequest;
+import com.toan.university_management.model.masterdata.EnrollmentRequest;
+import com.toan.university_management.model.masterdata.StudentRegistrationRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.masterdata.AvailableSubjectClassResponse;
-import com.toan.university_management.dto.response.masterdata.BatchEnrollmentResultResponse;
-import com.toan.university_management.dto.response.masterdata.EnrollmentResponse;
+import com.toan.university_management.model.masterdata.AvailableSubjectClassResponse;
+import com.toan.university_management.model.masterdata.BatchEnrollmentResultResponse;
+import com.toan.university_management.model.masterdata.EnrollmentResponse;
 import com.toan.university_management.service.masterdata.enrollment.EnrollmentService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

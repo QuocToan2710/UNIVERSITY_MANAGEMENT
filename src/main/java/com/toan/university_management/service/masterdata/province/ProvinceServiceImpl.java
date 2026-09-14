@@ -1,9 +1,9 @@
 package com.toan.university_management.service.masterdata.province;
 
-import com.toan.university_management.dto.request.masterdata.ProvinceRequest;
-import com.toan.university_management.dto.request.masterdata.ProvinceSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.ProvinceRequest;
+import com.toan.university_management.model.masterdata.ProvinceSearchPaginationRQ;
 import com.toan.university_management.common.dto.BasePaginationRS;
-import com.toan.university_management.dto.response.masterdata.ProvinceResponse;
+import com.toan.university_management.model.masterdata.ProvinceResponse;
 import com.toan.university_management.entity.masterdata.Province;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;

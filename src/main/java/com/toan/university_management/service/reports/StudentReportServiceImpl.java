@@ -1,6 +1,6 @@
 package com.toan.university_management.service.reports;
 
-import com.toan.university_management.dto.reports.StudentReportDTO;
+import com.toan.university_management.model.reports.StudentReportDTO;
 import com.toan.university_management.repository.masterdata.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

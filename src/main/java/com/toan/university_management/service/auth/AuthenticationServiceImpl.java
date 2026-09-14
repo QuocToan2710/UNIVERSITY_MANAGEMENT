@@ -5,12 +5,12 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.toan.university_management.dto.request.auth.AuthenticationRequest;
-import com.toan.university_management.dto.request.auth.IntrospectRequest;
-import com.toan.university_management.dto.request.auth.LogoutRequest;
-import com.toan.university_management.dto.request.auth.RefreshRequest;
-import com.toan.university_management.dto.response.auth.AuthenticationResponse;
-import com.toan.university_management.dto.response.auth.IntrospectResponse;
+import com.toan.university_management.model.auth.AuthenticationRequest;
+import com.toan.university_management.model.auth.IntrospectRequest;
+import com.toan.university_management.model.auth.LogoutRequest;
+import com.toan.university_management.model.auth.RefreshRequest;
+import com.toan.university_management.model.auth.AuthenticationResponse;
+import com.toan.university_management.model.auth.IntrospectResponse;
 import com.toan.university_management.entity.auth.InvalidatedToken;
 import com.toan.university_management.entity.identity.RolePermission;
 import com.toan.university_management.entity.identity.User;
@@ -174,7 +174,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void forgotPassword(com.toan.university_management.dto.request.auth.ForgotPasswordRequest request) {
+    public void forgotPassword(com.toan.university_management.model.auth.ForgotPasswordRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
         }
@@ -193,7 +193,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void resetPassword(com.toan.university_management.dto.request.auth.ResetPasswordRequest request) {
+    public void resetPassword(com.toan.university_management.model.auth.ResetPasswordRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new AppException(ErrorCode.EMAIL_NOT_FOUND);
         }

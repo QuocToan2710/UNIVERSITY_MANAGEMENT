@@ -1,14 +1,14 @@
 package com.toan.university_management.controller.masterdata;
 
 import com.toan.university_management.annotation.PermissionMeta;
-import com.toan.university_management.dto.request.masterdata.AttendanceSessionRequest;
-import com.toan.university_management.dto.request.masterdata.AutoGenerateSessionsRequest;
-import com.toan.university_management.dto.request.masterdata.SubmitAttendanceRequest;
+import com.toan.university_management.model.masterdata.AttendanceSessionRequest;
+import com.toan.university_management.model.masterdata.AutoGenerateSessionsRequest;
+import com.toan.university_management.model.masterdata.SubmitAttendanceRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.masterdata.AttendanceRecordResponse;
-import com.toan.university_management.dto.response.masterdata.AttendanceSessionResponse;
-import com.toan.university_management.dto.response.masterdata.BannedStudentResponse;
-import com.toan.university_management.dto.response.masterdata.StudentAttendanceSummaryResponse;
+import com.toan.university_management.model.masterdata.AttendanceRecordResponse;
+import com.toan.university_management.model.masterdata.AttendanceSessionResponse;
+import com.toan.university_management.model.masterdata.BannedStudentResponse;
+import com.toan.university_management.model.masterdata.StudentAttendanceSummaryResponse;
 import com.toan.university_management.service.masterdata.attendance.AttendanceService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

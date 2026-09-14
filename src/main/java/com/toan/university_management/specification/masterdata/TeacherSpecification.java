@@ -1,7 +1,7 @@
 package com.toan.university_management.specification.masterdata;
 
 import com.toan.university_management.common.specification.BaseSpecification;
-import com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.TeacherSearchPaginationRQ;
 import com.toan.university_management.entity.masterdata.Teacher;
 import org.springframework.data.jpa.domain.Specification;
 

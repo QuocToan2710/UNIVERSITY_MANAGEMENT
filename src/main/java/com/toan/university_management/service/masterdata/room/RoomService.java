@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.room;
 
-import com.toan.university_management.dto.request.masterdata.RoomRequest;
-import com.toan.university_management.dto.response.masterdata.RoomResponse;
+import com.toan.university_management.model.masterdata.RoomRequest;
+import com.toan.university_management.model.masterdata.RoomResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

@@ -1,9 +1,9 @@
 package com.toan.university_management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.toan.university_management.dto.request.masterdata.BatchEnrollmentRequest;
-import com.toan.university_management.dto.request.masterdata.ClassGroupEnrollmentRequest;
-import com.toan.university_management.dto.request.masterdata.StudentRegistrationRequest;
+import com.toan.university_management.model.masterdata.BatchEnrollmentRequest;
+import com.toan.university_management.model.masterdata.ClassGroupEnrollmentRequest;
+import com.toan.university_management.model.masterdata.StudentRegistrationRequest;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.masterdata.*;
 import com.toan.university_management.repository.identity.UserRepository;

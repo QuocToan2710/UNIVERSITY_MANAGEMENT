@@ -1,7 +1,7 @@
 package com.toan.university_management.service.identity;
 
-import com.toan.university_management.dto.request.identity.PermissionRequest;
-import com.toan.university_management.dto.response.identity.PermissionResponse;
+import com.toan.university_management.model.identity.PermissionRequest;
+import com.toan.university_management.model.identity.PermissionResponse;
 
 import java.util.List;
 

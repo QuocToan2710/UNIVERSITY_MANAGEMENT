@@ -1,9 +1,9 @@
 package com.toan.university_management.controller.identity;
 
 
-import com.toan.university_management.dto.request.identity.PermissionRequest;
+import com.toan.university_management.model.identity.PermissionRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.identity.PermissionResponse;
+import com.toan.university_management.model.identity.PermissionResponse;
 import com.toan.university_management.service.identity.PermissionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

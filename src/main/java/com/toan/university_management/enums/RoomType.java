@@ -1,6 +1,6 @@
 package com.toan.university_management.enums;
 
-import com.toan.university_management.dto.response.masterdata.SelectOptionResponse;
+import com.toan.university_management.model.masterdata.SelectOptionResponse;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

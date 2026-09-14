@@ -1,6 +1,6 @@
 package com.toan.university_management.reportmock;
 
-import com.toan.university_management.dto.reports.StudentReportRow;
+import com.toan.university_management.model.reports.StudentReportRow;
 
 import java.util.List;
 

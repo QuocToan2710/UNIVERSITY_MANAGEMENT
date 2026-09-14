@@ -1,7 +1,7 @@
 package com.toan.university_management.service.identity;
 
-import com.toan.university_management.dto.request.identity.RoleRequest;
-import com.toan.university_management.dto.response.identity.RoleResponse;
+import com.toan.university_management.model.identity.RoleRequest;
+import com.toan.university_management.model.identity.RoleResponse;
 
 import java.util.List;
 import java.util.Set;

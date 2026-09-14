@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.department;
 
-import com.toan.university_management.dto.request.masterdata.DepartmentRequest;
-import com.toan.university_management.dto.response.masterdata.DepartmentResponse;
+import com.toan.university_management.model.masterdata.DepartmentRequest;
+import com.toan.university_management.model.masterdata.DepartmentResponse;
 import com.toan.university_management.entity.masterdata.Department;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;

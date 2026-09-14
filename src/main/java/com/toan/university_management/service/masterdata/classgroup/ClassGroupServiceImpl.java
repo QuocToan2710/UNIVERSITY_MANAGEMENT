@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.classgroup;
 
-import com.toan.university_management.dto.request.masterdata.ClassGroupRequest;
-import com.toan.university_management.dto.response.masterdata.ClassGroupResponse;
+import com.toan.university_management.model.masterdata.ClassGroupRequest;
+import com.toan.university_management.model.masterdata.ClassGroupResponse;
 import com.toan.university_management.entity.masterdata.ClassGroup;
 import com.toan.university_management.entity.masterdata.Major;
 import com.toan.university_management.entity.masterdata.Teacher;

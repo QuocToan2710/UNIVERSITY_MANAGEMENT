@@ -1,8 +1,8 @@
 package com.toan.university_management.controller.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.TeacherRequest;
+import com.toan.university_management.model.masterdata.TeacherRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.masterdata.TeacherResponse;
+import com.toan.university_management.model.masterdata.TeacherResponse;
 import com.toan.university_management.service.masterdata.teacher.TeacherService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -66,7 +66,7 @@ public class TeacherController {
 
     @PostMapping("/search")
     ApiResponse<com.toan.university_management.common.dto.BasePaginationRS<TeacherResponse>> searchTeachers(
-            @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ request) {
+            @RequestBody(required = false) com.toan.university_management.model.masterdata.TeacherSearchPaginationRQ request) {
         return ApiResponse.<com.toan.university_management.common.dto.BasePaginationRS<TeacherResponse>>builder()
                 .result(teacherService.search(request))
                 .build();
@@ -74,7 +74,7 @@ public class TeacherController {
 
     @PostMapping("/export")
     ApiResponse<List<TeacherResponse>> exportTeachers(
-            @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ request) {
+            @RequestBody(required = false) com.toan.university_management.model.masterdata.TeacherSearchPaginationRQ request) {
         return ApiResponse.<List<TeacherResponse>>builder()
                 .result(teacherService.export(request))
                 .build();

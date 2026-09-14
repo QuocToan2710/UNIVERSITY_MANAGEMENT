@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.floor;
 
-import com.toan.university_management.dto.request.masterdata.FloorRequest;
-import com.toan.university_management.dto.response.masterdata.FloorResponse;
+import com.toan.university_management.model.masterdata.FloorRequest;
+import com.toan.university_management.model.masterdata.FloorResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

@@ -1,8 +1,8 @@
 package com.toan.university_management.controller.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.WardRequest;
+import com.toan.university_management.model.masterdata.WardRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.masterdata.WardResponse;
+import com.toan.university_management.model.masterdata.WardResponse;
 import com.toan.university_management.service.masterdata.ward.WardService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -76,7 +76,7 @@ public class WardController {
 
     @PostMapping("/search")
     ApiResponse<com.toan.university_management.common.dto.BasePaginationRS<WardResponse>> searchWards(
-            @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.WardSearchPaginationRQ request) {
+            @RequestBody(required = false) com.toan.university_management.model.masterdata.WardSearchPaginationRQ request) {
         return ApiResponse.<com.toan.university_management.common.dto.BasePaginationRS<WardResponse>>builder()
                 .result(wardService.search(request))
                 .build();
@@ -84,7 +84,7 @@ public class WardController {
 
     @PostMapping("/export")
     ApiResponse<List<WardResponse>> exportWards(
-            @RequestBody(required = false) com.toan.university_management.dto.request.masterdata.WardSearchPaginationRQ request) {
+            @RequestBody(required = false) com.toan.university_management.model.masterdata.WardSearchPaginationRQ request) {
         return ApiResponse.<List<WardResponse>>builder()
                 .result(wardService.export(request))
                 .build();

@@ -1,9 +1,9 @@
 package com.toan.university_management.service.masterdata.teacher;
 
 import com.toan.university_management.common.dto.BasePaginationRS;
-import com.toan.university_management.dto.request.masterdata.TeacherRequest;
-import com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ;
-import com.toan.university_management.dto.response.masterdata.TeacherResponse;
+import com.toan.university_management.model.masterdata.TeacherRequest;
+import com.toan.university_management.model.masterdata.TeacherSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.TeacherResponse;
 import com.toan.university_management.entity.masterdata.Department;
 import com.toan.university_management.entity.masterdata.District;
 import com.toan.university_management.entity.masterdata.Province;
@@ -213,7 +213,7 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TeacherResponse> export(com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ search) {
+    public List<TeacherResponse> export(com.toan.university_management.model.masterdata.TeacherSearchPaginationRQ search) {
         org.springframework.data.jpa.domain.Specification<Teacher> spec = com.toan.university_management.specification.masterdata.TeacherSpecification.filter(search);
         List<Teacher> teachers = teacherRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "teacherCode"));
         return enrichResponses(teachers);

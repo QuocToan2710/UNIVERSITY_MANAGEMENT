@@ -1,8 +1,8 @@
 package com.toan.university_management.service.notification;
 
-import com.toan.university_management.dto.request.notification.NotificationSendRequest;
-import com.toan.university_management.dto.response.notification.NotificationResponse;
-import com.toan.university_management.dto.response.notification.NotificationSummaryResponse;
+import com.toan.university_management.model.notification.NotificationSendRequest;
+import com.toan.university_management.model.notification.NotificationResponse;
+import com.toan.university_management.model.notification.NotificationSummaryResponse;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.identity.UserRole;
 import com.toan.university_management.entity.masterdata.Enrollment;

@@ -1,7 +1,7 @@
 package com.toan.university_management.service.masterdata.major;
 
-import com.toan.university_management.dto.request.masterdata.MajorRequest;
-import com.toan.university_management.dto.response.masterdata.MajorResponse;
+import com.toan.university_management.model.masterdata.MajorRequest;
+import com.toan.university_management.model.masterdata.MajorResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

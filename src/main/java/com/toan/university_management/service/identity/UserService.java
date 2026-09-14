@@ -1,7 +1,7 @@
 package com.toan.university_management.service.identity;
 
-import com.toan.university_management.dto.request.identity.UserRequest;
-import com.toan.university_management.dto.response.identity.UserResponse;
+import com.toan.university_management.model.identity.UserRequest;
+import com.toan.university_management.model.identity.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

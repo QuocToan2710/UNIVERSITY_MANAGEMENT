@@ -1,8 +1,8 @@
 package com.toan.university_management.service.identity;
 
-import com.toan.university_management.dto.request.identity.RoleRequest;
-import com.toan.university_management.dto.response.identity.PermissionResponse;
-import com.toan.university_management.dto.response.identity.RoleResponse;
+import com.toan.university_management.model.identity.RoleRequest;
+import com.toan.university_management.model.identity.PermissionResponse;
+import com.toan.university_management.model.identity.RoleResponse;
 import com.toan.university_management.entity.identity.Role;
 import com.toan.university_management.entity.identity.RolePermission;
 import com.toan.university_management.exception.AppException;

@@ -1,9 +1,9 @@
 package com.toan.university_management.controller.identity;
 
 
-import com.toan.university_management.dto.request.identity.RoleRequest;
+import com.toan.university_management.model.identity.RoleRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.identity.RoleResponse;
+import com.toan.university_management.model.identity.RoleResponse;
 import com.toan.university_management.service.identity.RoleService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

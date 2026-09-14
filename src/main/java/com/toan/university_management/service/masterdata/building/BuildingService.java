@@ -1,13 +1,13 @@
 package com.toan.university_management.service.masterdata.building;
 
-import com.toan.university_management.dto.request.masterdata.BuildingRequest;
-import com.toan.university_management.dto.response.masterdata.BuildingResponse;
+import com.toan.university_management.model.masterdata.BuildingRequest;
+import com.toan.university_management.model.masterdata.BuildingResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
-import com.toan.university_management.dto.request.masterdata.BuildingSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.BuildingSearchPaginationRQ;
 import com.toan.university_management.common.dto.BasePaginationRS;
 
 public interface BuildingService {

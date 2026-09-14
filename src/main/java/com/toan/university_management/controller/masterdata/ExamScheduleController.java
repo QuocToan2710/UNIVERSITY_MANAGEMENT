@@ -1,8 +1,8 @@
 package com.toan.university_management.controller.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.ExamScheduleRequest;
+import com.toan.university_management.model.masterdata.ExamScheduleRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.masterdata.ExamScheduleResponse;
+import com.toan.university_management.model.masterdata.ExamScheduleResponse;
 import com.toan.university_management.service.masterdata.examschedule.ExamScheduleService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

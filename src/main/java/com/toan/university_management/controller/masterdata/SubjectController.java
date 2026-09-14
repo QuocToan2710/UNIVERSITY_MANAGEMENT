@@ -1,8 +1,8 @@
 package com.toan.university_management.controller.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.SubjectRequest;
+import com.toan.university_management.model.masterdata.SubjectRequest;
 import com.toan.university_management.common.dto.ApiResponse;
-import com.toan.university_management.dto.response.masterdata.SubjectResponse;
+import com.toan.university_management.model.masterdata.SubjectResponse;
 import com.toan.university_management.service.masterdata.subject.SubjectService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

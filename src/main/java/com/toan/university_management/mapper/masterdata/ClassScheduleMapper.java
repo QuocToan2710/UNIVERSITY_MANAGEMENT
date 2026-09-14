@@ -1,7 +1,7 @@
 package com.toan.university_management.mapper.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.ClassScheduleRequest;
-import com.toan.university_management.dto.response.masterdata.ClassScheduleResponse;
+import com.toan.university_management.model.masterdata.ClassScheduleRequest;
+import com.toan.university_management.model.masterdata.ClassScheduleResponse;
 import com.toan.university_management.entity.masterdata.ClassSchedule;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;

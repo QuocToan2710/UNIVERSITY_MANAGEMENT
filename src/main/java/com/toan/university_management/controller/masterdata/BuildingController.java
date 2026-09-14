@@ -1,10 +1,10 @@
 package com.toan.university_management.controller.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.BuildingRequest;
-import com.toan.university_management.dto.request.masterdata.BuildingSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.BuildingRequest;
+import com.toan.university_management.model.masterdata.BuildingSearchPaginationRQ;
 import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.common.dto.BasePaginationRS;
-import com.toan.university_management.dto.response.masterdata.BuildingResponse;
+import com.toan.university_management.model.masterdata.BuildingResponse;
 import com.toan.university_management.service.masterdata.building.BuildingService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

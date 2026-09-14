@@ -1,8 +1,8 @@
 package com.toan.university_management.service.masterdata.grade;
 
-import com.toan.university_management.dto.request.masterdata.GradeBatchUpdateRequest;
-import com.toan.university_management.dto.response.masterdata.StudentTranscriptResponse;
-import com.toan.university_management.dto.response.masterdata.SubjectClassGradeSummaryResponse;
+import com.toan.university_management.model.masterdata.GradeBatchUpdateRequest;
+import com.toan.university_management.model.masterdata.StudentTranscriptResponse;
+import com.toan.university_management.model.masterdata.SubjectClassGradeSummaryResponse;
 
 public interface GradeService {
 

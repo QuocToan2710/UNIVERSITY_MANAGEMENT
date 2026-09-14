@@ -1,7 +1,7 @@
 package com.toan.university_management.repository.masterdata;
 
 import com.toan.university_management.common.repository.BaseRepository;
-import com.toan.university_management.dto.reports.StudentReportDTO;
+import com.toan.university_management.model.reports.StudentReportDTO;
 import com.toan.university_management.entity.masterdata.Student;
 import org.springframework.data.jpa.repository.Query;
 
@@ -21,7 +21,7 @@ public interface StudentRepository extends BaseRepository<Student, Long> {
     @Query("SELECT s.classGroupId, COUNT(s) FROM Student s WHERE s.deleted = false AND s.classGroupId IS NOT NULL GROUP BY s.classGroupId")
     List<Object[]> countStudentsGroupedByClassGroup();
 
-    @Query("SELECT new com.toan.university_management.dto.reports.StudentReportDTO(CAST(s.id AS string), s.studentCode, s.fullName, s.dob, s.gender, s.phoneNumber, s.email, s.address) FROM Student s WHERE s.deleted = false")
+    @Query("SELECT new com.toan.university_management.model.reports.StudentReportDTO(CAST(s.id AS string), s.studentCode, s.fullName, s.dob, s.gender, s.phoneNumber, s.email, s.address) FROM Student s WHERE s.deleted = false")
     List<StudentReportDTO> getAllStudentForReport();
 
     boolean existsByEmailAndDeletedFalse(String email);

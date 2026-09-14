@@ -1,7 +1,7 @@
 package com.toan.university_management.mapper.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.AttendanceRecordItemRequest;
-import com.toan.university_management.dto.response.masterdata.AttendanceRecordResponse;
+import com.toan.university_management.model.masterdata.AttendanceRecordItemRequest;
+import com.toan.university_management.model.masterdata.AttendanceRecordResponse;
 import com.toan.university_management.entity.masterdata.AttendanceRecord;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;

@@ -1,7 +1,7 @@
 package com.toan.university_management.mapper.masterdata;
 
-import com.toan.university_management.dto.request.masterdata.FloorRequest;
-import com.toan.university_management.dto.response.masterdata.FloorResponse;
+import com.toan.university_management.model.masterdata.FloorRequest;
+import com.toan.university_management.model.masterdata.FloorResponse;
 import com.toan.university_management.entity.masterdata.Floor;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;

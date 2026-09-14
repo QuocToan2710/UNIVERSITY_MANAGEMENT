@@ -1,9 +1,9 @@
 package com.toan.university_management;
 
-import com.toan.university_management.dto.response.identity.UserResponse;
-import com.toan.university_management.dto.response.masterdata.StudentResponse;
-import com.toan.university_management.dto.response.masterdata.SubjectResponse;
-import com.toan.university_management.dto.response.masterdata.TeacherResponse;
+import com.toan.university_management.model.identity.UserResponse;
+import com.toan.university_management.model.masterdata.StudentResponse;
+import com.toan.university_management.model.masterdata.SubjectResponse;
+import com.toan.university_management.model.masterdata.TeacherResponse;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.masterdata.Student;
 import com.toan.university_management.entity.masterdata.Subject;

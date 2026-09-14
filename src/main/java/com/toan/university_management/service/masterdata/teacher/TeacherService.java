@@ -1,8 +1,8 @@
 package com.toan.university_management.service.masterdata.teacher;
 
-import com.toan.university_management.dto.request.masterdata.TeacherRequest;
-import com.toan.university_management.dto.response.masterdata.TeacherResponse;
-import com.toan.university_management.dto.request.masterdata.TeacherSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.TeacherRequest;
+import com.toan.university_management.model.masterdata.TeacherResponse;
+import com.toan.university_management.model.masterdata.TeacherSearchPaginationRQ;
 import com.toan.university_management.common.dto.BasePaginationRS;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

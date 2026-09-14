@@ -1,9 +1,9 @@
 package com.toan.university_management.service.masterdata.student;
 
 import com.toan.university_management.common.dto.BasePaginationRS;
-import com.toan.university_management.dto.request.masterdata.StudentRequest;
-import com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ;
-import com.toan.university_management.dto.response.masterdata.StudentResponse;
+import com.toan.university_management.model.masterdata.StudentRequest;
+import com.toan.university_management.model.masterdata.StudentSearchPaginationRQ;
+import com.toan.university_management.model.masterdata.StudentResponse;
 import com.toan.university_management.entity.masterdata.ClassGroup;
 import com.toan.university_management.entity.masterdata.District;
 import com.toan.university_management.entity.masterdata.Major;
@@ -245,7 +245,7 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<StudentResponse> export(com.toan.university_management.dto.request.masterdata.StudentSearchPaginationRQ search) {
+    public List<StudentResponse> export(com.toan.university_management.model.masterdata.StudentSearchPaginationRQ search) {
         org.springframework.data.jpa.domain.Specification<Student> spec = com.toan.university_management.specification.masterdata.StudentSpecification.filter(search);
         List<Student> students = studentRepository.findAll(spec, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "studentCode"));
         return enrichStudentResponses(students);

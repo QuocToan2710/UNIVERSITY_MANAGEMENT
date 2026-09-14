@@ -1,7 +1,7 @@
 package com.toan.university_management.service.identity;
 
-import com.toan.university_management.dto.request.identity.PermissionRequest;
-import com.toan.university_management.dto.response.identity.PermissionResponse;
+import com.toan.university_management.model.identity.PermissionRequest;
+import com.toan.university_management.model.identity.PermissionResponse;
 import com.toan.university_management.entity.identity.Permission;
 import com.toan.university_management.mapper.identity.PermissionMapper;
 import com.toan.university_management.repository.identity.PermissionRepository;

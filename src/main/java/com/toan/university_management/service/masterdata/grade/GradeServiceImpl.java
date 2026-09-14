@@ -1,11 +1,11 @@
 package com.toan.university_management.service.masterdata.grade;
 
-import com.toan.university_management.dto.request.masterdata.GradeBatchUpdateRequest;
-import com.toan.university_management.dto.request.masterdata.GradeItemRequest;
-import com.toan.university_management.dto.response.masterdata.EnrollmentResponse;
-import com.toan.university_management.dto.response.masterdata.SemesterTranscriptResponse;
-import com.toan.university_management.dto.response.masterdata.StudentTranscriptResponse;
-import com.toan.university_management.dto.response.masterdata.SubjectClassGradeSummaryResponse;
+import com.toan.university_management.model.masterdata.GradeBatchUpdateRequest;
+import com.toan.university_management.model.masterdata.GradeItemRequest;
+import com.toan.university_management.model.masterdata.EnrollmentResponse;
+import com.toan.university_management.model.masterdata.SemesterTranscriptResponse;
+import com.toan.university_management.model.masterdata.StudentTranscriptResponse;
+import com.toan.university_management.model.masterdata.SubjectClassGradeSummaryResponse;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.masterdata.*;
 import com.toan.university_management.enums.*;

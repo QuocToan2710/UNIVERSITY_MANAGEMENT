@@ -1,8 +1,8 @@
 package com.toan.university_management.service.masterdata.tuition;
 
-import com.toan.university_management.dto.request.masterdata.RecordPaymentRequest;
-import com.toan.university_management.dto.response.masterdata.StudentTuitionSummaryResponse;
-import com.toan.university_management.dto.response.masterdata.TuitionDashboardSummaryResponse;
+import com.toan.university_management.model.masterdata.RecordPaymentRequest;
+import com.toan.university_management.model.masterdata.StudentTuitionSummaryResponse;
+import com.toan.university_management.model.masterdata.TuitionDashboardSummaryResponse;
 import com.toan.university_management.enums.TuitionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
