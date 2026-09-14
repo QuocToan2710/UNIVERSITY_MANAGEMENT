@@ -53,8 +53,8 @@ spring:
     # Gmail SMTP Configuration
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
 
     # Brevo SMTP Configuration (Dự phòng)
     # host: ${MAIL_HOST:smtp-relay.brevo.com}
@@ -62,11 +62,12 @@ spring:
     # username: ${MAIL_USERNAME:your-brevo-smtp-username}
     # password: ${MAIL_PASSWORD:your-brevo-smtp-key}
 
-    # Mailtrap Sandbox Configuration (Mock test)
-    # host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
-    # port: ${MAIL_PORT:2525}
-    # username: ${MAIL_USERNAME:2235038cf122a4}
+      # Mailtrap Sandbox Configuration (Mock test)
+      # host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+      # port: ${MAIL_PORT:2525}
+      # username: ${MAIL_USERNAME:2235038cf122a4}
     # password: ${MAIL_PASSWORD:e28331fa0b46a4}
+
     properties:
       mail:
         smtp:
@@ -90,4 +91,6 @@ app:
   init-data:
     enabled: ${INIT_DATA_ENABLED:true}
   mail:
-    from-email: ${MAIL_FROM_EMAIL:${MAIL_USERNAME:}}
+    from-email: ${MAIL_FROM_EMAIL:phamtoan27102003@gmail.com}
+    from-name: ${MAIL_FROM_NAME:Hệ Thống Đào Tạo Đại Học}
+    brevo-api-key: ${BREVO_API_KEY:}
