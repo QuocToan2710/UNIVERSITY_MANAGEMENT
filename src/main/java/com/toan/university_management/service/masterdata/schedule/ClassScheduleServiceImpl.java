@@ -51,24 +51,30 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         if (!request.getEndTime().isAfter(request.getStartTime()))
             throw new AppException(ErrorCode.SCHEDULE_TIME_INVALID);
 
-        if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
-            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
-        }
+        SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(request.getSubjectClassId())
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
 
-        // Kiểm tra conflict giáo viên
+        String semester = (request.getSemester() != null && !request.getSemester().isBlank())
+                ? request.getSemester() : subjectClass.getSemester();
+        String academicYear = (request.getAcademicYear() != null && !request.getAcademicYear().isBlank())
+                ? request.getAcademicYear() : subjectClass.getAcademicYear();
+
+        // Kiểm tra conflict giáo viên trong cùng học kỳ & năm học
         if (request.getTeacherId() != null) {
             if (classScheduleRepository.existsTeacherConflict(
                     request.getTeacherId(), request.getDayOfWeek(),
-                    request.getStartTime(), request.getEndTime(), null)) {
+                    request.getStartTime(), request.getEndTime(),
+                    semester, academicYear, null)) {
                 throw new AppException(ErrorCode.SCHEDULE_TEACHER_CONFLICT);
             }
         }
 
-        // Kiểm tra conflict phòng học
+        // Kiểm tra conflict phòng học trong cùng học kỳ & năm học
         if (request.getRoom() != null && !request.getRoom().isBlank()) {
             if (classScheduleRepository.existsRoomConflict(
                     request.getRoom(), request.getDayOfWeek(),
-                    request.getStartTime(), request.getEndTime(), null)) {
+                    request.getStartTime(), request.getEndTime(),
+                    semester, academicYear, null)) {
                 throw new AppException(ErrorCode.SCHEDULE_ROOM_CONFLICT);
             }
         }
@@ -76,6 +82,12 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         ClassSchedule schedule = classScheduleMapper.toClassSchedule(request);
         if (schedule.getScheduleCode() == null || schedule.getScheduleCode().isBlank()) {
             schedule.setScheduleCode("SCH_" + System.currentTimeMillis());
+        }
+        if (schedule.getSemester() == null || schedule.getSemester().isBlank()) {
+            schedule.setSemester(semester);
+        }
+        if (schedule.getAcademicYear() == null || schedule.getAcademicYear().isBlank()) {
+            schedule.setAcademicYear(academicYear);
         }
 
         schedule = classScheduleRepository.save(schedule);
@@ -90,15 +102,20 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         if (!request.getEndTime().isAfter(request.getStartTime()))
             throw new AppException(ErrorCode.SCHEDULE_TIME_INVALID);
 
-        if (!subjectClassRepository.existsByIdAndDeletedFalse(request.getSubjectClassId())) {
-            throw new AppException(ErrorCode.SUBJECT_NOT_FOUND);
-        }
+        SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(request.getSubjectClassId())
+                .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
+
+        String semester = (request.getSemester() != null && !request.getSemester().isBlank())
+                ? request.getSemester() : (schedule.getSemester() != null ? schedule.getSemester() : subjectClass.getSemester());
+        String academicYear = (request.getAcademicYear() != null && !request.getAcademicYear().isBlank())
+                ? request.getAcademicYear() : (schedule.getAcademicYear() != null ? schedule.getAcademicYear() : subjectClass.getAcademicYear());
 
         // Kiểm tra conflict giáo viên (loại trừ schedule hiện tại)
         if (request.getTeacherId() != null) {
             if (classScheduleRepository.existsTeacherConflict(
                     request.getTeacherId(), request.getDayOfWeek(),
-                    request.getStartTime(), request.getEndTime(), id)) {
+                    request.getStartTime(), request.getEndTime(),
+                    semester, academicYear, id)) {
                 throw new AppException(ErrorCode.SCHEDULE_TEACHER_CONFLICT);
             }
         }
@@ -107,12 +124,19 @@ public class ClassScheduleServiceImpl implements ClassScheduleService {
         if (request.getRoom() != null && !request.getRoom().isBlank()) {
             if (classScheduleRepository.existsRoomConflict(
                     request.getRoom(), request.getDayOfWeek(),
-                    request.getStartTime(), request.getEndTime(), id)) {
+                    request.getStartTime(), request.getEndTime(),
+                    semester, academicYear, id)) {
                 throw new AppException(ErrorCode.SCHEDULE_ROOM_CONFLICT);
             }
         }
 
         classScheduleMapper.updateSchedule(schedule, request);
+        if (schedule.getSemester() == null || schedule.getSemester().isBlank()) {
+            schedule.setSemester(semester);
+        }
+        if (schedule.getAcademicYear() == null || schedule.getAcademicYear().isBlank()) {
+            schedule.setAcademicYear(academicYear);
+        }
         schedule = classScheduleRepository.save(schedule);
 
         try {

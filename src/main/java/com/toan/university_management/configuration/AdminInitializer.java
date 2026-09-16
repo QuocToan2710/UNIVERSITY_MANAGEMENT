@@ -60,6 +60,11 @@ public class AdminInitializer {
             jdbcTemplate.update("UPDATE subject SET attendance_coeff = 1 WHERE attendance_coeff IS NULL OR attendance_coeff <= 0");
             jdbcTemplate.update("UPDATE subject SET midterm_coeff = 3 WHERE midterm_coeff IS NULL OR midterm_coeff <= 0");
             jdbcTemplate.update("UPDATE subject SET final_coeff = 6 WHERE final_coeff IS NULL OR final_coeff <= 0");
+
+            String[] tablesWithSoftDelete = {"enrollment", "building", "class_group", "department", "major", "room", "student", "subject", "teacher", "class_schedule", "exam_schedule", "floor", "subject_class"};
+            for (String tbl : tablesWithSoftDelete) {
+                jdbcTemplate.update("UPDATE " + tbl + " SET deleted_key = CAST(id AS CHAR) WHERE deleted = true AND (deleted_key = '' OR deleted_key IS NULL)");
+            }
         } catch (Exception e) {
             log.debug("Auto database cleanup / update skipped: {}", e.getMessage());
         }

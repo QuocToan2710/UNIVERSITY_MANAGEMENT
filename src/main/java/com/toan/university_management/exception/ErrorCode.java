@@ -64,11 +64,14 @@ public enum ErrorCode {
     SCHEDULE_ROOM_CONFLICT(2005, "error.schedule.room.conflict", HttpStatus.CONFLICT),
     SCHEDULE_TIME_INVALID(2006, "error.schedule.time.invalid", HttpStatus.BAD_REQUEST),
 
-    // === Course Registration & Enrollment (2012-2013, 2018-2019) ===
+    // === Course Registration & Enrollment (2012-2013, 2018-2019, 2025-2027) ===
     ENROLLMENT_NOT_FOUND(2012, "error.enrollment.not.found", HttpStatus.NOT_FOUND),
     ENROLLMENT_ALREADY_EXISTS(2013, "error.enrollment.already.exists", HttpStatus.BAD_REQUEST),
     ENROLLMENT_CAPACITY_FULL(2018, "error.enrollment.capacity.full", HttpStatus.BAD_REQUEST),
     ENROLLMENT_SCHEDULE_CONFLICT(2019, "error.enrollment.schedule.conflict", HttpStatus.CONFLICT),
+    ENROLLMENT_CANNOT_BE_CANCELLED(2025, "error.enrollment.cannot.be.cancelled", HttpStatus.BAD_REQUEST),
+    ENROLLMENT_MAX_CREDITS_EXCEEDED(2026, "error.enrollment.max.credits.exceeded", HttpStatus.BAD_REQUEST),
+    ENROLLMENT_SUBJECT_ALREADY_REGISTERED(2027, "error.enrollment.subject.already.registered", HttpStatus.BAD_REQUEST),
 
     // === Grades & Examination (2020-2022) ===
     GRADE_LOCKED(2020, "error.grade.locked", HttpStatus.BAD_REQUEST),

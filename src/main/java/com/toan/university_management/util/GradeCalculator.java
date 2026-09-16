@@ -25,12 +25,44 @@ public class GradeCalculator {
             return;
         }
 
+        // Kiểm tra điều kiện dự thi (Chuyên cần < 4.0 -> Bị cấm thi)
         if (att != null && att < 4.0) {
+            enrollment.setIsBannedFromExam(true);
             if (enrollment.getNote() == null || enrollment.getNote().isBlank()) {
                 enrollment.setNote("Không đủ điều kiện dự thi (Chuyên cần < 4.0)");
             }
+        } else if (att != null && att >= 4.0 && Boolean.TRUE.equals(enrollment.getIsBannedFromExam())) {
+            // Nếu trước đó bị cấm do chuyên cần < 4.0 nhưng nay giảng viên đã sửa lại điểm >= 4.0
+            double absenceRate = enrollment.getAbsenceRate() != null ? enrollment.getAbsenceRate() : 0.0;
+            if (absenceRate <= 20.0 && enrollment.getNote() != null && enrollment.getNote().contains("Chuyên cần < 4.0")) {
+                enrollment.setIsBannedFromExam(false);
+                enrollment.setNote(null);
+            }
         }
 
+        // Trường hợp bị cấm thi -> Điểm F, rớt môn
+        if (Boolean.TRUE.equals(enrollment.getIsBannedFromExam())) {
+            enrollment.setFinalScore(0.0);
+            enrollment.setTotalScore(0.0);
+            enrollment.setLetterGrade("F");
+            enrollment.setGradePoint4(0.0);
+            enrollment.setStatus(EnrollmentStatus.FAILED);
+            if (enrollment.getNote() == null || enrollment.getNote().isBlank()) {
+                enrollment.setNote("Không đủ điều kiện dự thi");
+            }
+            return;
+        }
+
+        // Chưa có điểm thi kết thúc học phần -> Đang học, chưa xếp chữ/tổng kết
+        if (fin == null) {
+            enrollment.setTotalScore(null);
+            enrollment.setLetterGrade(null);
+            enrollment.setGradePoint4(null);
+            enrollment.setStatus(EnrollmentStatus.ATTENDING);
+            return;
+        }
+
+        // Đã có điểm thi kết thúc học phần -> Tính điểm tổng kết
         double totalWeighted = 0.0;
         int totalCoeff = 0;
 
@@ -50,6 +82,14 @@ public class GradeCalculator {
         if (totalCoeff > 0) {
             double total = Math.round((totalWeighted / totalCoeff) * 100.0) / 100.0;
             enrollment.setTotalScore(total);
+
+            // Điểm liệt thi kết thúc học phần (< 4.0) hoặc điểm tổng kết không đạt (< 4.0)
+            if (fin < 4.0 || total < 4.0) {
+                enrollment.setLetterGrade("F");
+                enrollment.setGradePoint4(0.0);
+                enrollment.setStatus(EnrollmentStatus.FAILED);
+                return;
+            }
 
             String letter;
             double point4;
@@ -82,16 +122,7 @@ public class GradeCalculator {
 
             enrollment.setLetterGrade(letter);
             enrollment.setGradePoint4(point4);
-
-            if (fin != null) {
-                if (total >= 4.0 && (att == null || att >= 4.0)) {
-                    enrollment.setStatus(EnrollmentStatus.PASSED);
-                } else {
-                    enrollment.setStatus(EnrollmentStatus.FAILED);
-                }
-            } else {
-                enrollment.setStatus(EnrollmentStatus.ATTENDING);
-            }
+            enrollment.setStatus("F".equals(letter) ? EnrollmentStatus.FAILED : EnrollmentStatus.PASSED);
         }
     }
 

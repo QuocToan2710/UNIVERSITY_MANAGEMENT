@@ -9,8 +9,11 @@ import com.toan.university_management.model.masterdata.BatchEnrollmentResultResp
 import com.toan.university_management.model.masterdata.EnrollmentResponse;
 import com.toan.university_management.entity.masterdata.Enrollment;
 import com.toan.university_management.entity.masterdata.Student;
+import com.toan.university_management.entity.masterdata.Subject;
 import com.toan.university_management.entity.masterdata.SubjectClass;
 import com.toan.university_management.entity.masterdata.Teacher;
+import com.toan.university_management.enums.EnrollmentStatus;
+import com.toan.university_management.enums.GradeStatus;
 import com.toan.university_management.enums.NotificationPriority;
 import com.toan.university_management.enums.NotificationTargetType;
 import com.toan.university_management.enums.NotificationType;
@@ -74,37 +77,80 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             }
         }
 
-        // 2. Trùng lớp học phần
+        // 2. Trùng chính lớp học phần này
         if (enrollmentRepository.existsByStudentIdAndSubjectClassIdAndDeletedFalse(request.getStudentId(), request.getSubjectClassId())) {
             throw new AppException(ErrorCode.ENROLLMENT_ALREADY_EXISTS);
         }
 
-        // 3. Trùng lịch học (Schedule conflict)
+        // Lấy danh sách các lớp học phần sinh viên đã đăng ký trong cùng học kỳ & năm học
+        String targetSemester = subjectClass.getSemester();
+        String targetAcademicYear = subjectClass.getAcademicYear();
+
+        List<Enrollment> existingEnrollments = enrollmentRepository.findAllByStudentIdAndDeletedFalse(request.getStudentId());
+        Set<Long> existingClassIds = existingEnrollments.stream()
+                .filter(e -> e.getStatus() != EnrollmentStatus.CANCELLED)
+                .map(Enrollment::getSubjectClassId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<SubjectClass> sameSemesterClasses = Collections.emptyList();
+        if (!existingClassIds.isEmpty()) {
+            List<SubjectClass> allClasses = subjectClassRepository.findAllByIdInAndDeletedFalse(existingClassIds);
+            sameSemesterClasses = allClasses.stream()
+                    .filter(sc -> isSameSemesterAndYear(sc.getSemester(), sc.getAcademicYear(), targetSemester, targetAcademicYear))
+                    .toList();
+        }
+
+        // 3. Trùng lịch học (Schedule conflict) - chỉ kiểm tra với các lớp trong cùng học kỳ & năm học
         List<com.toan.university_management.entity.masterdata.ClassSchedule> targetSchedules = 
                 classScheduleRepository.findAllBySubjectClassIdInAndDeletedFalse(List.of(subjectClass.getId()));
-        if (!targetSchedules.isEmpty()) {
-            List<Enrollment> existingEnrollments = enrollmentRepository.findAllByStudentIdAndDeletedFalse(request.getStudentId());
-            Set<Long> existingClassIds = existingEnrollments.stream()
-                    .map(Enrollment::getSubjectClassId)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+        if (!targetSchedules.isEmpty() && !sameSemesterClasses.isEmpty()) {
+            Set<Long> sameSemesterClassIds = sameSemesterClasses.stream().map(SubjectClass::getId).collect(Collectors.toSet());
+            List<com.toan.university_management.entity.masterdata.ClassSchedule> existingSchedules =
+                    classScheduleRepository.findAllBySubjectClassIdInAndDeletedFalse(sameSemesterClassIds);
 
-            if (!existingClassIds.isEmpty()) {
-                List<com.toan.university_management.entity.masterdata.ClassSchedule> existingSchedules =
-                        classScheduleRepository.findAllBySubjectClassIdInAndDeletedFalse(existingClassIds);
-
-                for (var targetSch : targetSchedules) {
-                    for (var existSch : existingSchedules) {
-                        if (targetSch.getDayOfWeek() == existSch.getDayOfWeek()) {
-                            boolean hasOverlap = targetSch.getStartTime().isBefore(existSch.getEndTime()) 
-                                    && targetSch.getEndTime().isAfter(existSch.getStartTime());
-                            if (hasOverlap) {
-                                throw new AppException(ErrorCode.ENROLLMENT_SCHEDULE_CONFLICT);
-                            }
+            for (var targetSch : targetSchedules) {
+                for (var existSch : existingSchedules) {
+                    if (targetSch.getDayOfWeek() == existSch.getDayOfWeek()) {
+                        boolean hasOverlap = targetSch.getStartTime().isBefore(existSch.getEndTime()) 
+                                && targetSch.getEndTime().isAfter(existSch.getStartTime());
+                        if (hasOverlap) {
+                            throw new AppException(ErrorCode.ENROLLMENT_SCHEDULE_CONFLICT);
                         }
                     }
                 }
             }
+        }
+
+        // 4. Trùng môn học trong cùng học kỳ (sinh viên đã đăng ký một lớp khác của cùng môn học)
+        if (subjectClass.getSubjectId() != null && !sameSemesterClasses.isEmpty()) {
+            boolean isSubjectAlreadyEnrolled = sameSemesterClasses.stream()
+                    .anyMatch(sc -> subjectClass.getSubjectId().equals(sc.getSubjectId()));
+            if (isSubjectAlreadyEnrolled) {
+                throw new AppException(ErrorCode.ENROLLMENT_SUBJECT_ALREADY_REGISTERED);
+            }
+        }
+
+        // 5. Giới hạn số tín chỉ tối đa trong 1 học kỳ (tối đa 24 tín chỉ)
+        Subject currentSubject = (subjectClass.getSubjectId() != null)
+                ? subjectRepository.findByIdAndDeletedFalse(subjectClass.getSubjectId()).orElse(null)
+                : null;
+        int newCredits = (currentSubject != null) ? currentSubject.getCredit() : 0;
+
+        int currentSemesterCredits = 0;
+        if (!sameSemesterClasses.isEmpty()) {
+            Set<Long> sameSemesterSubIds = sameSemesterClasses.stream()
+                    .map(SubjectClass::getSubjectId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            currentSemesterCredits = sameSemesterSubIds.isEmpty() ? 0 :
+                    subjectRepository.findAllByIdInAndDeletedFalse(sameSemesterSubIds).stream()
+                            .mapToInt(Subject::getCredit)
+                            .sum();
+        }
+
+        if (currentSemesterCredits + newCredits > 24) {
+            throw new AppException(ErrorCode.ENROLLMENT_MAX_CREDITS_EXCEEDED);
         }
 
         Enrollment enrollment = enrollmentMapper.toEnrollment(request);
@@ -177,6 +223,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Enrollment e = enrollmentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_FOUND));
         e.setDeleted(true);
+        e.setDeletedKey(String.valueOf(e.getId()));
         enrollmentRepository.save(e);
     }
 
@@ -217,7 +264,14 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         final Student studentForNotif = currentStudent;
         Enrollment e = enrollmentRepository.findByStudentIdAndSubjectClassIdAndDeletedFalse(currentStudent.getId(), subjectClassId)
                 .orElseThrow(() -> new AppException(ErrorCode.ENROLLMENT_NOT_FOUND));
+
+        if (!isCurrentUserAdmin()) {
+            validateCanCancelEnrollment(e);
+        }
+
+        e.setStatus(EnrollmentStatus.CANCELLED);
         e.setDeleted(true);
+        e.setDeletedKey(String.valueOf(e.getId()));
         enrollmentRepository.save(e);
 
         try {
@@ -246,19 +300,54 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         if (!isCurrentUserAdmin()) {
             Student currentStudent = findCurrentStudentOptional().orElse(null);
-            if (currentStudent != null && !currentStudent.getId().equals(e.getStudentId())) {
+            if (currentStudent == null || !currentStudent.getId().equals(e.getStudentId())) {
                 throw new AppException(ErrorCode.UNAUTHORIZED);
             }
+            validateCanCancelEnrollment(e);
         }
 
+        e.setStatus(EnrollmentStatus.CANCELLED);
         e.setDeleted(true);
+        e.setDeletedKey(String.valueOf(e.getId()));
         enrollmentRepository.save(e);
+
+        try {
+            studentRepository.findByIdAndDeletedFalse(e.getStudentId()).ifPresent(stu -> {
+                if (stu.getUserId() != null) {
+                    subjectClassRepository.findByIdAndDeletedFalse(e.getSubjectClassId()).ifPresent(sc -> {
+                        notificationService.sendSystemNotification(
+                                "Hủy đăng ký học phần",
+                                "Bạn đã hủy đăng ký lớp học phần: " + sc.getName() + " (" + sc.getSubjectClassCode() + ")",
+                                NotificationType.ENROLLMENT,
+                                NotificationPriority.NORMAL,
+                                NotificationTargetType.USER,
+                                String.valueOf(stu.getUserId()),
+                                "/course-registration"
+                        );
+                    });
+                }
+            });
+        } catch (Exception ex) {
+            log.warn("Could not send cancellation notification: {}", ex.getMessage());
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<EnrollmentResponse> getMyRegistrations(String semester, String academicYear) {
-        Student currentStudent = findCurrentStudentOptional().orElse(null);
+        return getMyRegistrations(semester, academicYear, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EnrollmentResponse> getMyRegistrations(String semester, String academicYear, Long studentId) {
+        Student currentStudent = null;
+        if (isCurrentUserAdmin() && studentId != null) {
+            currentStudent = studentRepository.findByIdAndDeletedFalse(studentId).orElse(null);
+        }
+        if (currentStudent == null) {
+            currentStudent = findCurrentStudentOptional().orElse(null);
+        }
         if (currentStudent == null && isCurrentUserAdmin()) {
             currentStudent = studentRepository.findAllByDeletedFalse().stream().findFirst().orElse(null);
         }
@@ -278,12 +367,20 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     @Transactional(readOnly = true)
     public List<EnrollmentResponse> getEnrollmentsBySubjectClass(Long subjectClassId) {
         List<Enrollment> list = enrollmentRepository.findAllBySubjectClassIdAndDeletedFalse(subjectClassId);
-        return enrichResponses(list);
+        return enrichResponses(list).stream()
+                .filter(res -> res.getStudentCode() != null && res.getStudentName() != null)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AvailableSubjectClassResponse> getAvailableClassesForRegistration(String semester, String academicYear) {
+        return getAvailableClassesForRegistration(semester, academicYear, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvailableSubjectClassResponse> getAvailableClassesForRegistration(String semester, String academicYear, Long studentId) {
         List<SubjectClass> subjectClasses = subjectClassRepository.findAllByDeletedFalse();
 
         if (subjectClasses.isEmpty()) {
@@ -318,7 +415,13 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Map<Long, List<com.toan.university_management.entity.masterdata.ClassSchedule>> scheduleMap = allSchedules.stream()
                 .collect(Collectors.groupingBy(com.toan.university_management.entity.masterdata.ClassSchedule::getSubjectClassId));
 
-        Student currentStudent = findCurrentStudentOptional().orElse(null);
+        Student currentStudent = null;
+        if (isCurrentUserAdmin() && studentId != null) {
+            currentStudent = studentRepository.findByIdAndDeletedFalse(studentId).orElse(null);
+        }
+        if (currentStudent == null) {
+            currentStudent = findCurrentStudentOptional().orElse(null);
+        }
         if (currentStudent == null && isCurrentUserAdmin()) {
             currentStudent = studentRepository.findAllByDeletedFalse().stream().findFirst().orElse(null);
         }
@@ -573,5 +676,28 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return auth.getAuthorities().stream().anyMatch(a ->
                 a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN")
         );
+    }
+
+    private boolean isSameSemesterAndYear(String sem1, String year1, String sem2, String year2) {
+        String s1 = sem1 != null ? sem1.trim().toLowerCase().replaceAll("[^0-9a-z]", "") : "";
+        String s2 = sem2 != null ? sem2.trim().toLowerCase().replaceAll("[^0-9a-z]", "") : "";
+        String y1 = year1 != null ? year1.trim().toLowerCase().replaceAll("[^0-9a-z]", "") : "";
+        String y2 = year2 != null ? year2.trim().toLowerCase().replaceAll("[^0-9a-z]", "") : "";
+
+        boolean semMatch = s1.equals(s2) || (!s1.isEmpty() && !s2.isEmpty() && (s1.endsWith(s2) || s2.endsWith(s1)));
+        boolean yearMatch = y1.equals(y2);
+
+        return semMatch && yearMatch;
+    }
+
+    private void validateCanCancelEnrollment(Enrollment e) {
+        if (e.getFinalScore() != null
+                || e.getGradeStatus() == GradeStatus.LOCKED
+                || e.getGradeStatus() == GradeStatus.PUBLISHED
+                || e.getStatus() == EnrollmentStatus.PASSED
+                || e.getStatus() == EnrollmentStatus.FAILED
+                || Boolean.TRUE.equals(e.getIsBannedFromExam())) {
+            throw new AppException(ErrorCode.ENROLLMENT_CANNOT_BE_CANCELLED);
+        }
     }
 }

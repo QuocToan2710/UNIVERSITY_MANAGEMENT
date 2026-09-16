@@ -200,4 +200,66 @@ public class GradeServiceTest {
         assertEquals("Giỏi", transcript.getAcademicRank());
         assertEquals(1, transcript.getSemesters().size());
     }
+
+    @Test
+    @DisplayName("Test student banned from exam receives F and 0.0 grade point")
+    void testBannedFromExamCalculation() {
+        Enrollment bannedEnr = Enrollment.builder()
+                .isBannedFromExam(true)
+                .attendanceScore(8.0)
+                .midtermScore(7.0)
+                .finalScore(9.0)
+                .build();
+
+        GradeCalculator.computeAndApplyGrades(bannedEnr, testSubject);
+
+        assertEquals(EnrollmentStatus.FAILED, bannedEnr.getStatus());
+        assertEquals("F", bannedEnr.getLetterGrade());
+        assertEquals(0.0, bannedEnr.getGradePoint4());
+        assertEquals(0.0, bannedEnr.getTotalScore());
+    }
+
+    @Test
+    @DisplayName("Test course retake replaces previous grade in cumulative CPA and does not duplicate earned credits")
+    void testCourseRetakeCumulativeCpaAndCredits() {
+        // Attempt 1: Failed in HK1
+        testEnrollment.setAttendanceScore(5.0);
+        testEnrollment.setMidtermScore(4.0);
+        testEnrollment.setFinalScore(2.0); // Fail exam (< 4.0)
+        GradeCalculator.computeAndApplyGrades(testEnrollment, testSubject);
+        enrollmentRepository.save(testEnrollment);
+
+        // Attempt 2: Retake in HK2 and Passed with A
+        SubjectClass retakeClass = subjectClassRepository.save(SubjectClass.builder()
+                .subjectClassCode("SC_JAVA_02")
+                .name("Lớp Java 02 - Học lại")
+                .subjectId(testSubject.getId())
+                .semester("Học kỳ 2")
+                .academicYear("2025-2026")
+                .maxCapacity(40)
+                .build());
+
+        Enrollment retakeEnrollment = enrollmentRepository.save(Enrollment.builder()
+                .enrollmentCode("ENR_TEST_RETAKE")
+                .studentId(testStudent.getId())
+                .subjectClassId(retakeClass.getId())
+                .attendanceScore(9.0)
+                .midtermScore(8.5)
+                .finalScore(9.0)
+                .build());
+        GradeCalculator.computeAndApplyGrades(retakeEnrollment, testSubject);
+        enrollmentRepository.save(retakeEnrollment);
+
+        StudentTranscriptResponse transcript = gradeService.getStudentTranscript(testStudent.getId());
+
+        assertNotNull(transcript);
+        // Registered 3 credits in HK1 + 3 credits in HK2 = 6 registered credits
+        assertEquals(6, transcript.getTotalRegisteredCredits());
+        // Earned credits for the same subject must be 3 (counted only once!)
+        assertEquals(3, transcript.getTotalEarnedCredits());
+        // Cumulative CPA should use best attempt (A = 4.0), not average of (0 + 4)/2
+        assertEquals(4.0, transcript.getCumulativeCpa4());
+        assertEquals(8.85, transcript.getCumulativeGpa10());
+        assertEquals(2, transcript.getSemesters().size());
+    }
 }

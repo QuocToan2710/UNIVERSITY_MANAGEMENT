@@ -182,6 +182,7 @@ public class TeacherServiceImpl implements TeacherService {
         Teacher teacher = teacherRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TEACHER_NOT_FOUND));
         teacher.setDeleted(true);
+        teacher.setDeletedKey(String.valueOf(teacher.getId()));
         if (teacher.getUserId() != null) {
             userRepository.findByIdAndDeletedFalse(teacher.getUserId()).ifPresent(u -> {
                 u.setDeleted(true);

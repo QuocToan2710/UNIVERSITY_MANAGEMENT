@@ -73,6 +73,7 @@ public class SubjectClassServiceImpl implements SubjectClassService {
         SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
         subjectClass.setDeleted(true);
+        subjectClass.setDeletedKey(String.valueOf(subjectClass.getId()));
         subjectClassRepository.save(subjectClass);
     }
 

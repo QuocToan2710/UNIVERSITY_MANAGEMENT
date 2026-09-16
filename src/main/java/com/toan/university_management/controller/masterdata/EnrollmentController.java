@@ -108,18 +108,20 @@ public class EnrollmentController {
     @GetMapping("/my-registrations")
     public ApiResponse<List<EnrollmentResponse>> getMyRegistrations(
             @RequestParam(required = false) String semester,
-            @RequestParam(required = false) String academicYear) {
+            @RequestParam(required = false) String academicYear,
+            @RequestParam(required = false) Long studentId) {
         return ApiResponse.<List<EnrollmentResponse>>builder()
-                .result(enrollmentService.getMyRegistrations(semester, academicYear))
+                .result(enrollmentService.getMyRegistrations(semester, academicYear, studentId))
                 .build();
     }
 
     @GetMapping("/available-classes")
     public ApiResponse<List<AvailableSubjectClassResponse>> getAvailableClasses(
             @RequestParam(required = false) String semester,
-            @RequestParam(required = false) String academicYear) {
+            @RequestParam(required = false) String academicYear,
+            @RequestParam(required = false) Long studentId) {
         return ApiResponse.<List<AvailableSubjectClassResponse>>builder()
-                .result(enrollmentService.getAvailableClassesForRegistration(semester, academicYear))
+                .result(enrollmentService.getAvailableClassesForRegistration(semester, academicYear, studentId))
                 .build();
     }
 

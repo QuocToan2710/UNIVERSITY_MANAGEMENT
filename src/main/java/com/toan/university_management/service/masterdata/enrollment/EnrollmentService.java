@@ -24,8 +24,10 @@ public interface EnrollmentService {
     void cancelRegistration(Long subjectClassId);
     void cancelRegistrationById(Long enrollmentId);
     List<EnrollmentResponse> getMyRegistrations(String semester, String academicYear);
+    List<EnrollmentResponse> getMyRegistrations(String semester, String academicYear, Long studentId);
     List<EnrollmentResponse> getEnrollmentsBySubjectClass(Long subjectClassId);
     List<AvailableSubjectClassResponse> getAvailableClassesForRegistration(String semester, String academicYear);
+    List<AvailableSubjectClassResponse> getAvailableClassesForRegistration(String semester, String academicYear, Long studentId);
     BatchEnrollmentResultResponse batchEnroll(BatchEnrollmentRequest request);
     BatchEnrollmentResultResponse enrollClassGroup(ClassGroupEnrollmentRequest request);
 }

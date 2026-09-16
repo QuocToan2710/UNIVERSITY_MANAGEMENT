@@ -31,8 +31,8 @@ spring:
 
 #    url: ${DB_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/university?sslMode=REQUIRED}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
-#    username: ${DB_USERNAME:26XzvF9BnZg6yYV.root}
-#    password: ${DB_PASSWORD:jh7vnFfhZ8T6aRPk}
+#    username: ${DB_USERNAME:}
+#    password: ${DB_PASSWORD:}
 
   jpa:
     open-in-view: false

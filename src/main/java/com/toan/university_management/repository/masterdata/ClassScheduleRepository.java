@@ -44,6 +44,8 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     @Query("SELECT COUNT(s) > 0 FROM ClassSchedule s WHERE s.deleted = false " +
            "AND s.teacherId = :teacherId " +
            "AND s.dayOfWeek = :dayOfWeek " +
+           "AND (:semester IS NULL OR s.semester = :semester) " +
+           "AND (:academicYear IS NULL OR s.academicYear = :academicYear) " +
            "AND s.startTime < :endTime AND s.endTime > :startTime " +
            "AND (:excludeId IS NULL OR s.id <> :excludeId)")
     boolean existsTeacherConflict(
@@ -51,12 +53,16 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
             @Param("dayOfWeek") WeekDay dayOfWeek,
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime,
+            @Param("semester") String semester,
+            @Param("academicYear") String academicYear,
             @Param("excludeId") Long excludeId);
 
     /** Kiểm tra conflict phòng học: trùng room + dayOfWeek + khoảng thời gian */
     @Query("SELECT COUNT(s) > 0 FROM ClassSchedule s WHERE s.deleted = false " +
            "AND s.room = :room " +
            "AND s.dayOfWeek = :dayOfWeek " +
+           "AND (:semester IS NULL OR s.semester = :semester) " +
+           "AND (:academicYear IS NULL OR s.academicYear = :academicYear) " +
            "AND s.startTime < :endTime AND s.endTime > :startTime " +
            "AND (:excludeId IS NULL OR s.id <> :excludeId)")
     boolean existsRoomConflict(
@@ -64,5 +70,7 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
             @Param("dayOfWeek") WeekDay dayOfWeek,
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime,
+            @Param("semester") String semester,
+            @Param("academicYear") String academicYear,
             @Param("excludeId") Long excludeId);
 }

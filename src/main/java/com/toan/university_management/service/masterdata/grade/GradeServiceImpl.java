@@ -63,8 +63,20 @@ public class GradeServiceImpl implements GradeService {
             teacher = teacherRepository.findByIdAndDeletedFalse(subjectClass.getTeacherId()).orElse(null);
         }
 
-        List<Enrollment> enrollments = enrollmentRepository.findAllBySubjectClassIdAndDeletedFalse(subjectClassId);
-        List<EnrollmentResponse> enrichedEnrollments = enrichEnrollments(enrollments, subjectClass, subject);
+        List<Enrollment> rawEnrollments = enrollmentRepository.findAllBySubjectClassIdAndDeletedFalse(subjectClassId);
+
+        Set<Long> studentIds = rawEnrollments.stream().map(Enrollment::getStudentId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, Student> studentMap = studentIds.isEmpty()
+                ? Collections.emptyMap()
+                : studentRepository.findAllByIdInAndDeletedFalse(studentIds).stream()
+                        .collect(Collectors.toMap(Student::getId, Function.identity()));
+
+        // Chỉ xử lý các enrollment có sinh viên hợp lệ và còn tồn tại trong hệ thống (loại bỏ enrollment mồ côi)
+        List<Enrollment> enrollments = rawEnrollments.stream()
+                .filter(e -> e.getStudentId() != null && studentMap.containsKey(e.getStudentId()))
+                .toList();
+
+        List<EnrollmentResponse> enrichedEnrollments = enrichEnrollments(enrollments, subjectClass, subject, studentMap);
 
         // Grade Statistics
         int totalStudents = enrollments.size();
@@ -314,17 +326,20 @@ public class GradeServiceImpl implements GradeService {
         // Group enrollments by Semester
         Map<String, List<Enrollment>> semesterMap = new LinkedHashMap<>();
         for (Enrollment e : enrollments) {
+            if (e.getStatus() == EnrollmentStatus.CANCELLED) {
+                continue;
+            }
             SubjectClass sc = scMap.get(e.getSubjectClassId());
             String key = (sc != null && sc.getSemester() != null ? sc.getSemester() : "Học kỳ 1") + " - " + (sc != null && sc.getAcademicYear() != null ? sc.getAcademicYear() : "2025-2026");
             semesterMap.computeIfAbsent(key, k -> new ArrayList<>()).add(e);
         }
 
         List<SemesterTranscriptResponse> semesterResponses = new ArrayList<>();
-        double cumulativeWeighted4 = 0.0;
-        double cumulativeWeighted10 = 0.0;
         int totalRegisteredCredits = 0;
-        int totalEarnedCredits = 0;
-        int cumulativeCreditsForGpa = 0;
+
+        // Group enrollments by subject for cumulative CPA and unique earned credits
+        Map<Long, List<Enrollment>> enrollmentsBySubject = new LinkedHashMap<>();
+        List<Enrollment> enrollmentsWithoutSubject = new ArrayList<>();
 
         for (Map.Entry<String, List<Enrollment>> entry : semesterMap.entrySet()) {
             String semKey = entry.getKey();
@@ -365,18 +380,21 @@ public class GradeServiceImpl implements GradeService {
 
                         if (e.getStatus() == EnrollmentStatus.PASSED) {
                             semEarnedCredits += credit;
-                            totalEarnedCredits += credit;
                         }
 
                         if (e.getGradePoint4() != null && e.getTotalScore() != null && (e.getStatus() == EnrollmentStatus.PASSED || e.getStatus() == EnrollmentStatus.FAILED)) {
                             semWeighted4 += e.getGradePoint4() * credit;
                             semWeighted10 += e.getTotalScore() * credit;
                             semCreditsForGpa += credit;
-
-                            cumulativeWeighted4 += e.getGradePoint4() * credit;
-                            cumulativeWeighted10 += e.getTotalScore() * credit;
-                            cumulativeCreditsForGpa += credit;
                         }
+
+                        if (sc.getSubjectId() != null) {
+                            enrollmentsBySubject.computeIfAbsent(sc.getSubjectId(), k -> new ArrayList<>()).add(e);
+                        } else {
+                            enrollmentsWithoutSubject.add(e);
+                        }
+                    } else {
+                        enrollmentsWithoutSubject.add(e);
                     }
                 }
                 enrichedSemEnrollments.add(resp);
@@ -394,6 +412,54 @@ public class GradeServiceImpl implements GradeService {
                     .semesterEarnedCredits(semEarnedCredits)
                     .courses(enrichedSemEnrollments)
                     .build());
+        }
+
+        // Tính lũy kế CPA & Tổng số tín chỉ tích lũy (không trùng lặp môn học lại/cải thiện)
+        double cumulativeWeighted4 = 0.0;
+        double cumulativeWeighted10 = 0.0;
+        int totalEarnedCredits = 0;
+        int cumulativeCreditsForGpa = 0;
+
+        for (Map.Entry<Long, List<Enrollment>> entry : enrollmentsBySubject.entrySet()) {
+            Long subjectId = entry.getKey();
+            List<Enrollment> subjectEnrollments = entry.getValue();
+            Subject sub = subMap.get(subjectId);
+            int credit = (sub != null) ? sub.getCredit() : 0;
+
+            // 1. Tín chỉ tích lũy: Mỗi môn học qua chỉ được tính tín chỉ tối đa 1 lần
+            boolean hasPassed = subjectEnrollments.stream().anyMatch(e -> e.getStatus() == EnrollmentStatus.PASSED);
+            if (hasPassed) {
+                totalEarnedCredits += credit;
+            }
+
+            // 2. CPA lũy kế: Lấy điểm của lần thi cao nhất để tính CPA
+            Enrollment bestEnrollment = subjectEnrollments.stream()
+                    .filter(e -> e.getGradePoint4() != null && e.getTotalScore() != null 
+                            && (e.getStatus() == EnrollmentStatus.PASSED || e.getStatus() == EnrollmentStatus.FAILED))
+                    .max(Comparator.comparing(Enrollment::getGradePoint4)
+                            .thenComparing(Enrollment::getTotalScore))
+                    .orElse(null);
+
+            if (bestEnrollment != null && credit > 0) {
+                cumulativeWeighted4 += bestEnrollment.getGradePoint4() * credit;
+                cumulativeWeighted10 += bestEnrollment.getTotalScore() * credit;
+                cumulativeCreditsForGpa += credit;
+            }
+        }
+
+        for (Enrollment e : enrollmentsWithoutSubject) {
+            SubjectClass sc = scMap.get(e.getSubjectClassId());
+            Subject sub = (sc != null) ? subMap.get(sc.getSubjectId()) : null;
+            int credit = (sub != null) ? sub.getCredit() : 0;
+
+            if (e.getStatus() == EnrollmentStatus.PASSED) {
+                totalEarnedCredits += credit;
+            }
+            if (e.getGradePoint4() != null && e.getTotalScore() != null && (e.getStatus() == EnrollmentStatus.PASSED || e.getStatus() == EnrollmentStatus.FAILED) && credit > 0) {
+                cumulativeWeighted4 += e.getGradePoint4() * credit;
+                cumulativeWeighted10 += e.getTotalScore() * credit;
+                cumulativeCreditsForGpa += credit;
+            }
         }
 
         Double cumulativeCpa4 = cumulativeCreditsForGpa > 0 
@@ -470,14 +536,8 @@ public class GradeServiceImpl implements GradeService {
         }
     }
 
-    private List<EnrollmentResponse> enrichEnrollments(List<Enrollment> enrollments, SubjectClass sc, Subject subject) {
+    private List<EnrollmentResponse> enrichEnrollments(List<Enrollment> enrollments, SubjectClass sc, Subject subject, Map<Long, Student> studentMap) {
         if (enrollments.isEmpty()) return Collections.emptyList();
-
-        Set<Long> studentIds = enrollments.stream().map(Enrollment::getStudentId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, Student> studentMap = studentIds.isEmpty()
-                ? Collections.emptyMap()
-                : studentRepository.findAllByIdInAndDeletedFalse(studentIds).stream()
-                        .collect(Collectors.toMap(Student::getId, Function.identity()));
 
         return enrollments.stream().map(e -> {
             EnrollmentResponse resp = enrollmentMapper.toEnrollmentResponse(e);

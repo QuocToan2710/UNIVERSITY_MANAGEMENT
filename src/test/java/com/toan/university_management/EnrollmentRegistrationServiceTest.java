@@ -9,6 +9,8 @@ import com.toan.university_management.model.masterdata.BatchEnrollmentResultResp
 import com.toan.university_management.model.masterdata.EnrollmentResponse;
 import com.toan.university_management.entity.identity.User;
 import com.toan.university_management.entity.masterdata.*;
+import com.toan.university_management.enums.EnrollmentStatus;
+import com.toan.university_management.enums.GradeStatus;
 import com.toan.university_management.enums.WeekDay;
 import com.toan.university_management.exception.AppException;
 import com.toan.university_management.exception.ErrorCode;
@@ -288,5 +290,109 @@ public class EnrollmentRegistrationServiceTest {
         assertEquals(1, sc1.getCurrentCapacity());
         assertEquals(2, sc1.getMaxCapacity());
         assertFalse(sc1.getSchedules().isEmpty());
+    }
+
+    @Test
+    @DisplayName("9. Không được phép hủy đăng ký nếu học phần đã có điểm hoặc đã khóa/công bố")
+    void testCannotCancelGradedOrLockedEnrollment() {
+        enrollmentService.createEnrollment(EnrollmentRequest.builder().studentId(student1.getId()).subjectClassId(testSubjectClass.getId()).build());
+        Enrollment enr = enrollmentRepository.findByStudentIdAndSubjectClassIdAndDeletedFalse(student1.getId(), testSubjectClass.getId()).orElseThrow();
+
+        // Giả sử môn đã có điểm thi cuối kỳ
+        enr.setFinalScore(7.5);
+        enrollmentRepository.save(enr);
+
+        AppException ex = assertThrows(AppException.class, () -> {
+            enrollmentService.cancelRegistration(testSubjectClass.getId());
+        });
+        assertEquals(ErrorCode.ENROLLMENT_CANNOT_BE_CANCELLED, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("10. Không cho phép đăng ký 2 lớp của cùng một môn học trong cùng học kỳ")
+    void testCannotRegisterDuplicateSubjectInSameSemester() {
+        // Đăng ký lớp 1
+        enrollmentService.createEnrollment(EnrollmentRequest.builder().studentId(student1.getId()).subjectClassId(testSubjectClass.getId()).build());
+
+        // Tạo lớp thứ 3 của cùng testSubject nhưng lịch học khác (Thứ 3 không trùng giờ)
+        SubjectClass class3 = subjectClassRepository.save(SubjectClass.builder()
+                .subjectClassCode("CLS_03_" + uniqueSuffix)
+                .name("Lớp HP 03 " + uniqueSuffix)
+                .subjectId(testSubject.getId())
+                .semester("HK1")
+                .academicYear("2025-2026")
+                .maxCapacity(30)
+                .build());
+
+        classScheduleRepository.save(ClassSchedule.builder()
+                .scheduleCode("SCH_03_" + uniqueSuffix)
+                .subjectClassId(class3.getId())
+                .dayOfWeek(WeekDay.TUESDAY)
+                .startTime(LocalTime.of(7, 0))
+                .endTime(LocalTime.of(9, 30))
+                .room("C301")
+                .semester("HK1")
+                .academicYear("2025-2026")
+                .build());
+
+        AppException ex = assertThrows(AppException.class, () -> {
+            enrollmentService.createEnrollment(EnrollmentRequest.builder().studentId(student1.getId()).subjectClassId(class3.getId()).build());
+        });
+        assertEquals(ErrorCode.ENROLLMENT_SUBJECT_ALREADY_REGISTERED, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("11. Vượt quá giới hạn 24 tín chỉ trong 1 học kỳ -> ENROLLMENT_MAX_CREDITS_EXCEEDED")
+    void testMaxCreditsExceeded() {
+        // Tạo các môn học và lớp với tổng số tín chỉ đạt 24
+        Subject heavySub1 = subjectRepository.save(Subject.builder()
+                .subjectCode("HEAVY_1_" + uniqueSuffix)
+                .name("Môn nặng 1")
+                .credit(12)
+                .build());
+        Subject heavySub2 = subjectRepository.save(Subject.builder()
+                .subjectCode("HEAVY_2_" + uniqueSuffix)
+                .name("Môn nặng 2")
+                .credit(12)
+                .build());
+        Subject extraSub = subjectRepository.save(Subject.builder()
+                .subjectCode("EXTRA_" + uniqueSuffix)
+                .name("Môn phụ thêm")
+                .credit(3)
+                .build());
+
+        SubjectClass heavyClass1 = subjectClassRepository.save(SubjectClass.builder()
+                .subjectClassCode("HCLS_1_" + uniqueSuffix)
+                .name("Lớp nặng 1")
+                .subjectId(heavySub1.getId())
+                .semester("HK1")
+                .academicYear("2025-2026")
+                .maxCapacity(50)
+                .build());
+        SubjectClass heavyClass2 = subjectClassRepository.save(SubjectClass.builder()
+                .subjectClassCode("HCLS_2_" + uniqueSuffix)
+                .name("Lớp nặng 2")
+                .subjectId(heavySub2.getId())
+                .semester("HK1")
+                .academicYear("2025-2026")
+                .maxCapacity(50)
+                .build());
+        SubjectClass extraClass = subjectClassRepository.save(SubjectClass.builder()
+                .subjectClassCode("EXTRA_CLS_" + uniqueSuffix)
+                .name("Lớp phụ thêm")
+                .subjectId(extraSub.getId())
+                .semester("HK1")
+                .academicYear("2025-2026")
+                .maxCapacity(50)
+                .build());
+
+        enrollmentService.createEnrollment(EnrollmentRequest.builder().studentId(student2.getId()).subjectClassId(heavyClass1.getId()).build());
+        enrollmentService.createEnrollment(EnrollmentRequest.builder().studentId(student2.getId()).subjectClassId(heavyClass2.getId()).build());
+        // Hiện tại đã đạt 24 tín chỉ (12 + 12)
+
+        AppException ex = assertThrows(AppException.class, () -> {
+            enrollmentService.createEnrollment(EnrollmentRequest.builder().studentId(student2.getId()).subjectClassId(extraClass.getId()).build());
+        });
+        assertEquals(ErrorCode.ENROLLMENT_MAX_CREDITS_EXCEEDED, ex.getErrorCode());
     }
 }

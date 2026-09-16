@@ -112,6 +112,7 @@ public class ExamScheduleServiceImpl implements ExamScheduleService {
         ExamSchedule examSchedule = examScheduleRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
         examSchedule.setDeleted(true);
+        examSchedule.setDeletedKey(String.valueOf(examSchedule.getId()));
         examScheduleRepository.save(examSchedule);
     }
 

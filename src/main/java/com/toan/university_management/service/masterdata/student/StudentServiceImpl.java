@@ -60,6 +60,7 @@ public class StudentServiceImpl implements StudentService {
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
     com.toan.university_management.service.email.EmailService emailService;
+    com.toan.university_management.repository.masterdata.EnrollmentRepository enrollmentRepository;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -222,6 +223,14 @@ public class StudentServiceImpl implements StudentService {
             });
         }
         studentRepository.save(student);
+
+        // Soft-delete toàn bộ đăng ký học phần (enrollment) của sinh viên để tránh mồ côi dữ liệu bảng điểm và điểm danh
+        List<com.toan.university_management.entity.masterdata.Enrollment> enrollments = enrollmentRepository.findAllByStudentIdAndDeletedFalse(id);
+        for (var e : enrollments) {
+            e.setDeleted(true);
+            e.setDeletedKey(String.valueOf(e.getId()));
+            enrollmentRepository.save(e);
+        }
     }
 
     @Override
