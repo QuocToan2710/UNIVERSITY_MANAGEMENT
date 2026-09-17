@@ -1,5 +1,7 @@
 package com.toan.university_management.model.masterdata;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.toan.university_management.constant.AppConstants;
 import com.toan.university_management.enums.AttendanceSessionStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -25,6 +27,7 @@ public class AttendanceSessionResponse {
     Long teacherId;
     String teacherName;
     Integer sessionNumber;
+    @JsonFormat(pattern = AppConstants.DATE_FORMAT)
     LocalDate sessionDate;
     Integer lessonCount;
     String room;
@@ -35,6 +38,7 @@ public class AttendanceSessionResponse {
     Integer presentStudents;
     Integer absentStudents;
     Integer lateStudents;
+    @JsonFormat(pattern = AppConstants.DATE_TIME_FORMAT, timezone = "Asia/Ho_Chi_Minh")
     LocalDateTime createdAt;
     String createdBy;
 }

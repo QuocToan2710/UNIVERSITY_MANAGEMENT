@@ -19,6 +19,10 @@ spring:
   application:
     name: university-management
 
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
+    date-format: yyyy-MM-dd HH:mm:ss
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
@@ -43,9 +47,11 @@ spring:
 
   data:
     redis:
+      url: ${REDIS_URL:rediss://default:gQAAAAAAAQUCAAIgcDIwOGQ5ZmVmZTYxNmM0MDM5ODJkYmFkNzViNjA4NjM3YQ@guided-cow-66818.upstash.io:6379}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:gQAAAAAAAQUCAAIgcDIwOGQ5ZmVmZTYxNmM0MDM5ODJkYmFkNzViNjA4NjM3YQ}
       ssl:
         enabled: ${REDIS_SSL_ENABLED:false}
 

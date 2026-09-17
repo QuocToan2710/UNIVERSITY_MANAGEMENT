@@ -1,5 +1,7 @@
 package com.toan.university_management.model.masterdata;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.toan.university_management.constant.AppConstants;
 import com.toan.university_management.enums.TuitionStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -31,6 +33,7 @@ public class StudentTuitionSummaryResponse {
     Long discountAmount;
     Long paidAmount;
     Long balanceAmount;
+    @JsonFormat(pattern = AppConstants.DATE_FORMAT)
     LocalDate dueDate;
     TuitionStatus status;
     String statusDescription;
