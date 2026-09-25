@@ -66,7 +66,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (!studentRepository.existsByIdAndDeletedFalse(request.getStudentId())) {
             throw new AppException(ErrorCode.STUDENT_NOT_FOUND);
         }
-        SubjectClass subjectClass = subjectClassRepository.findByIdAndDeletedFalse(request.getSubjectClassId())
+        SubjectClass subjectClass = subjectClassRepository.findByIdWithLock(request.getSubjectClassId())
                 .orElseThrow(() -> new AppException(ErrorCode.SUBJECT_CLASS_NOT_FOUND));
 
         // 1. Sĩ số tối đa

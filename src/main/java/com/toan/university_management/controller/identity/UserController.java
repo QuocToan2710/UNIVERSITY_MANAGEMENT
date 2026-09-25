@@ -2,6 +2,7 @@ package com.toan.university_management.controller.identity;
 
 
 import com.toan.university_management.model.identity.UserRequest;
+import com.toan.university_management.model.identity.ChangePasswordRequest;
 import com.toan.university_management.common.dto.ApiResponse;
 import com.toan.university_management.model.identity.UserResponse;
 import com.toan.university_management.service.identity.UserService;
@@ -62,6 +63,21 @@ public class UserController {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateUser(request))
                 .build();
+    }
+
+    @PutMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    ApiResponse<String> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return ApiResponse.<String>builder()
+                .result("Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới.")
+                .build();
+    }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    ApiResponse<String> changePasswordPost(@RequestBody @Valid ChangePasswordRequest request) {
+        return changePassword(request);
     }
 
     @PutMapping("/{userId}/roles")

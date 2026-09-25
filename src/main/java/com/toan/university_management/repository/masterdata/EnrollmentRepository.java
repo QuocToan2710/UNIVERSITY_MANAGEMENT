@@ -14,6 +14,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Page<Enrollment> findAllByDeletedFalse(Pageable pageable);
     List<Enrollment> findAllByDeletedFalse();
     List<Enrollment> findAllByStudentIdAndDeletedFalse(Long studentId);
+    List<Enrollment> findAllByStudentIdInAndDeletedFalse(Collection<Long> studentIds);
     List<Enrollment> findAllBySubjectClassIdAndDeletedFalse(Long subjectClassId);
     List<Enrollment> findAllBySubjectClassIdInAndDeletedFalse(Collection<Long> subjectClassIds);
     List<Enrollment> findAllByIdInAndDeletedFalse(Collection<Long> ids);

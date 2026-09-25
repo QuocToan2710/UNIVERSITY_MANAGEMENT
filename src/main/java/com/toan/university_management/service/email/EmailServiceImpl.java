@@ -128,7 +128,7 @@ public class EmailServiceImpl implements EmailService {
             sendHtmlEmail(toEmail, safeName, subject, htmlContent);
         } catch (Exception ex) {
             log.warn("Could not send email via Brevo API or SMTP (using fallback log). To: {}, OTP: {}, Error: {}", toEmail, otpCode, ex.getMessage());
-            log.info("🔑 [DEV/FALLBACK OTP] Email: {} | OTP Code: {} (Expires in 10 mins)", toEmail, otpCode);
+            log.info("[DEV/FALLBACK OTP] Email: {} | OTP Code: {} (Expires in 10 mins)", toEmail, otpCode);
         }
     }
 
@@ -143,7 +143,7 @@ public class EmailServiceImpl implements EmailService {
             sendHtmlEmail(toEmail, safeName, subject, htmlContent);
         } catch (Exception ex) {
             log.warn("Could not send credentials email via Brevo API or SMTP (using fallback log). To: {}, Error: {}", toEmail, ex.getMessage());
-            log.info("🔑 [DEV/FALLBACK WELCOME EMAIL] Email: {} | Username: {} | Password: {}", toEmail, username, initialPassword);
+            log.info("[DEV/FALLBACK WELCOME EMAIL] Email: {} | Username: {} | Password: {}", toEmail, username, initialPassword);
         }
     }
 }

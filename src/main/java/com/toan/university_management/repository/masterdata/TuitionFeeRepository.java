@@ -17,6 +17,9 @@ public interface TuitionFeeRepository extends JpaRepository<TuitionFee, Long> {
 
     List<TuitionFee> findAllByStudentIdAndDeletedFalse(Long studentId);
 
+    List<TuitionFee> findAllByStudentIdInAndSemesterAndAcademicYearAndDeletedFalse(
+            java.util.Collection<Long> studentIds, String semester, String academicYear);
+
     List<TuitionFee> findAllBySemesterAndAcademicYearAndDeletedFalse(String semester, String academicYear);
 
     List<TuitionFee> findAllByDeletedFalse();

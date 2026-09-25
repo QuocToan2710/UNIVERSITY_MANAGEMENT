@@ -1,6 +1,7 @@
 package com.toan.university_management.service.identity;
 
 import com.toan.university_management.model.identity.UserRequest;
+import com.toan.university_management.model.identity.ChangePasswordRequest;
 import com.toan.university_management.model.identity.RoleResponse;
 import com.toan.university_management.model.identity.UserResponse;
 import com.toan.university_management.entity.identity.Role;
@@ -190,6 +191,40 @@ public class UserServiceImpl implements UserService {
                 .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(name))
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return enrichUserResponse(user);
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        String name = authentication.getName();
+
+        User user = userRepository.findByUsernameAndDeletedFalse(name)
+                .or(() -> userRepository.findByUsernameIgnoreCaseAndDeletedFalse(name))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        // 1. Kiem tra mat khau cu
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new AppException(ErrorCode.OLD_PASSWORD_INCORRECT, "Mật khẩu hiện tại không chính xác");
+        }
+
+        // 2. Kiem tra mat khau xac nhan (neu co truyen)
+        if (request.getConfirmPassword() != null && !request.getConfirmPassword().isBlank()) {
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                throw new AppException(ErrorCode.PASSWORD_CONFIRM_NOT_MATCH, "Mật khẩu mới và xác nhận mật khẩu không khớp");
+            }
+        }
+
+        // 3. Kiem tra mat khau moi khong duoc trung mat khau cu
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new AppException(ErrorCode.PASSWORD_SAME_AS_OLD, "Mật khẩu mới không được trùng với mật khẩu hiện tại");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("User [{}] successfully changed password", user.getUsername());
     }
 
     @Override

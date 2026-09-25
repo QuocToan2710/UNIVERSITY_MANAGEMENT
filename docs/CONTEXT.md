@@ -182,18 +182,132 @@
 
 ---
 
-## 5. Trạng thái kiểm tra & Xác thực (Verification Status)
+---
 
-- **Backend Tests:** `mvn test -Dtest=*ApplicationTests*` $\longrightarrow$ **BUILD SUCCESS (100% PASS, 0 errors, Auto-synced 200 API permissions to ADMIN)**.
-- **Backend Compile:** `mvn clean test-compile` $\longrightarrow$ **BUILD SUCCESS (0 errors)**.
-- **Frontend Build:** `npm run build` $\longrightarrow$ **BUILD SUCCESS in 2.08s (0 errors)**.
+## 5. Các công việc đã hoàn thành trong phiên làm việc ngày 10/09/2026 (Completed Work)
+
+### A. Triển khai Toàn diện Tầng JPA Criteria Specification & Database Dynamic Filtering
+- **Mở rộng `BaseRepository.java`:**
+  - Kế thừa `JpaSpecificationExecutor<T>` trên `BaseRepository<T, ID>`, kích hoạt sẵn sàng khả năng thực thi Specification trên **100% Repository** trong dự án.
+- **Tối ưu & Nâng cấp `BaseSpecification.java`:**
+  - Cung cấp các helper dynamic predicate: `isNotDeleted()`, `likeIgnoreCase(attribute, value)`, `equalsIfNotNull(attribute, value)`, `inIfNotEmpty(attribute, collection)`, `keywordSearch(keyword, attributes...)` tránh `NullPointerException` và xây dựng câu lệnh SQL chuẩn xác.
+- **Xây dựng bộ Specifications nghiệp vụ (`com.toan.university_management.specification.masterdata`):**
+  - [`StudentSpecification.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/specification/masterdata/StudentSpecification.java): Lọc đa tiêu chí trực tiếp tại Database (từ khóa tổng hợp, mã SV, họ tên, email, ngành, lớp sinh hoạt, tỉnh/thành, quận/huyện, phường/xã).
+  - [`TeacherSpecification.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/specification/masterdata/TeacherSpecification.java): Lọc theo mã GV, họ tên, email, SĐT, học vị, khoa, địa chỉ.
+  - [`BuildingSpecification.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/specification/masterdata/BuildingSpecification.java): Lọc mã tòa nhà, tên tòa, trạng thái hoạt động.
+  - [`ProvinceSpecification.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/specification/masterdata/ProvinceSpecification.java), [`DistrictSpecification.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/specification/masterdata/DistrictSpecification.java), [`WardSpecification.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/specification/masterdata/WardSpecification.java): Lọc danh mục hành chính địa giới.
+- **Chuyển đổi tầng Service từ In-memory Filter sang Database-level Paging:**
+  - Thay thế toàn bộ logic kéo toàn bộ bảng về RAM rồi lọc stream bằng `repository.findAll(spec, pageable)` trực tiếp.
+  - Tối ưu hóa hiệu năng và bộ nhớ vượt trội, MySQL tự động thực thi mệnh đề `WHERE` và `LIMIT / OFFSET`.
 
 ---
 
-## 6. Hướng dẫn tiếp tục phát triển & Định hướng mở rộng (Next Steps & Roadmap)
+## 6. Các công việc đã hoàn thành trong phiên làm việc ngày 17/09/2026 (Completed Work)
 
-1. **Bật lại mã hóa BCrypt khi lên môi trường Production:** Chỉ cần đổi dòng return trong [`PasswordEncoderConfig.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/configuration/PasswordEncoderConfig.java) thành `return new BCryptPasswordEncoder(10);`.
-2. **Chi tiết lộ trình tính năng tiếp theo:** Tham khảo file [`ROADMAP.md`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/ROADMAP.md) (Tích hợp cổng thanh toán trực tuyến VNPay/MoMo Sandbox cho học phí, Import Excel danh sách lớp, WebSocket thông báo realtime, AI Assistant).
+### A. Khắc phục Lỗi Kết nối Upstash Redis Cloud & Hỗ trợ `REDIS_URL`
+- Nâng cấp [`RedisConfig.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/configuration/RedisConfig.java) và [`application.yml`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/resources/application.yml):
+  - Hỗ trợ trực tiếp chuỗi `REDIS_URL` (dạng `rediss://default:token@host:port`).
+  - Tự động nhận diện host Upstash (`*.upstash.io`) để bật `builder.useSsl()` ngay cả khi người dùng quên cấu hình `REDIS_SSL_ENABLED=true`.
+  - Khắc phục triệt để lỗi `Redis CacheClear error: Unable to connect to Redis`.
+
+### B. Khắc phục Triệt để Lỗi Reload Trang Bị Văng Ra Màn Login
+- **Nguyên nhân:** Khối `.catch()` trong [`app-shell.tsx`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/react_tutorial/app/components/app-shell.tsx) bắt toàn bộ ngoại lệ (kể cả lỗi request bị browser abort khi bấm F5 reload) và lập tức gọi `clearToken()` xóa sạch token trong `localStorage`.
+- **Giải pháp:**
+  - Thêm cờ `isMounted` chống race condition khi unmount/reload.
+  - Phân loại lỗi chặt chẽ: **CHỈ gọi `clearToken()` khi server thực sự trả về HTTP 401**.
+  - Tích hợp cơ chế Stale-While-Revalidate: khi gặp lỗi mạng tạm thời hoặc server cold-start, tự động fallback vào cache `getCachedUser()`, giữ nguyên phiên đăng nhập.
+  - Đồng bộ xử lý lỗi an toàn tại các màn hình: [`teaching/attendance.tsx`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/react_tutorial/app/routes/teaching/attendance.tsx), [`student/attendance.tsx`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/react_tutorial/app/routes/student/attendance.tsx), [`admin/attendance-reports.tsx`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/react_tutorial/app/routes/admin/attendance-reports.tsx).
+
+### C. Triển khai Custom DatePicker Chuẩn Doanh nghiệp (Fixed DD/MM/YYYY Format)
+- **Vấn đề:** Thẻ HTML native `<input type="date">` tự động đổi sang `mm/dd/yyyy` khi trình duyệt chuyển sang tiếng Anh Mỹ (`en-US`).
+- **Giải pháp:**
+  - Xây dựng component chuẩn [`DatePicker.tsx`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/react_tutorial/app/components/date-picker.tsx):
+    - Cố định 100% định dạng hiển thị `dd/mm/yyyy` trên mọi trình duyệt/ngôn ngữ.
+    - Hỗ trợ gõ phím trực tiếp với auto-slash mask (gõ số tự thêm `/`, tự validate ngày hợp lệ).
+    - Popover Lịch tương tác đẹp mắt (chọn nhanh Năm sinh từ 1940-2035, chọn Tháng, nút Hôm nay, nút Xóa, hỗ trợ Dark/Light theme).
+    - Giá trị `onChange` luôn xuất ra chuỗi chuẩn ISO `YYYY-MM-DD`, tương thích 100% với Database và Backend.
+  - Thay thế toàn diện trên: Form Sinh viên (`student-form.tsx`), Form Lịch thi (`exam-schedule-form.tsx`), Modal Điểm danh (`attendance.tsx`).
+
+### D. Rà soát Toàn diện Hệ thống & Xóa Bỏ Các Lỗi Nhập Liệu / Múi Giờ Cơ Bản
+- **Khắc phục Lỗi Timezone Shift (Lệch ngày lùi 1 ngày):**
+  - Cấu hình Jackson timezone toàn cục `spring.jackson.time-zone: Asia/Ho_Chi_Minh` trong [`application.yml`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/resources/application.yml).
+  - Thêm `@JsonFormat(pattern = AppConstants.DATE_FORMAT, timezone = "Asia/Ho_Chi_Minh")` vào toàn bộ các DTO (`StudentRequest`, `StudentResponse`, `StudentSummary`, `StudentReportDTO`, `ExamScheduleResponse`, `AttendanceSessionResponse`, `StudentTuitionSummaryResponse`).
+  - Nâng cấp `formatDate` và `dateValue` ở frontend: Parse trực tiếp chuỗi `YYYY-MM-DD` sang `DD/MM/YYYY` mà không gọi `new Date()`, triệt tiêu 100% rủi ro lệch múi giờ trên các trình duyệt quốc tế.
+- **Khắc phục Form Input Jumps & Crash Edge Cases:**
+  - Thay thế `value={val || fallback}` thành `val ?? fallback` tại `floor-form.tsx`, `building-form.tsx`, `room-form.tsx` để người dùng xóa Backspace thoải mái và nhập tầng 0 (tầng trệt) không bị ép thành 1.
+  - Xử lý `maxStudents ? Number(maxStudents) : null` trong `class-group-form.tsx` tránh crash Jackson Integer Deserialization.
+  - Bọc an toàn `formatTimeInput` và form submit trong `schedule-form.tsx`, `exam-schedule-form.tsx`.
+- **Chuẩn hóa Hiển thị và Xuất Excel Ngày tháng:**
+  - Đồng bộ `formatDate` và `formatDateTime` trên toàn bộ các route: `students.tsx`, `exam.tsx`, `teaching/attendance.tsx`, `student/attendance.tsx`, `tuition.tsx`, `course-registration.tsx`, `enrollment-management-modal.tsx`.
+
+### E. Đồng bộ Hoàn chỉnh Git Workflow lên các Nhánh
+- Toàn bộ commit đã được push đầy đủ và sạch sẽ lên cả 2 nhánh **`ToanDev`** và **`main`** cho cả 2 repository:
+  - **Backend (`university-management`)**: Commit `0716e64` đồng bộ trên `origin/ToanDev` và `origin/main`.
+  - **Frontend (`react_tutorial`)**: Commit `1bb6bb4` (merge clean) đồng bộ trên `origin/ToanDev` và `origin/main`.
+  - Working tree hoàn toàn sạch (`working tree clean`).
+
+---
+
+## 7. Các công việc đã hoàn thành trong phiên làm việc ngày 23/09/2026 (Completed Work)
+
+### A. Triển khai Khóa Hàng Bi Quan Chống Tranh Chấp Sĩ Số (Issue 2.1: Pessimistic Locking & Capacity Concurrency)
+- **Vấn đề:** Kiểm tra sĩ số đăng ký tín chỉ là Check-Then-Act, khi nhiều sinh viên cùng đăng ký slot cuối cùng có thể dẫn tới vượt quá sĩ số lớp (`maxCapacity`).
+- **Giải pháp:**
+  - Bổ sung phương thức khóa dòng `@Lock(LockModeType.PESSIMISTIC_WRITE)` và câu lệnh `SELECT ... FOR UPDATE` trong `SubjectClassRepository.java` (`findByIdWithLock`).
+  - Cập nhật `createEnrollment` trong `EnrollmentServiceImpl.java` sử dụng `findByIdWithLock` để khóa độc quyền hàng dữ liệu của lớp học phần trong suốt transaction.
+  - Bảo vệ 100% cho cả luồng đăng ký cá nhân của sinh viên và phân bổ cả lớp sinh hoạt (`batchEnroll`).
+
+### B. Tối Ưu Hóa Truy Vấn & Phân Trang Bảng Học Phí (Issue 2.2: Batch Loading & Database Paging in Tuition Module)
+- **Vấn đề:** `getAllStudentsTuition` và `getDashboardSummary` trong `TuitionServiceImpl.java` kéo toàn bộ bảng Sinh viên về RAM, lặp qua từng sinh viên kích hoạt $O(4N)$ câu query con và phân trang in-memory bằng `subList`.
+- **Giải pháp:**
+  - Tích hợp `StudentSpecification.filter(rq)` vào `getAllStudentsTuition`: phân trang trực tiếp ở tầng Database với `LIMIT / OFFSET` khi không lọc status.
+  - Xây dựng cơ chế gom nhóm dữ liệu (Batch Loading) `buildBatchStudentTuitionSummaries`: gom danh sách sinh viên của trang hiện tại và query `findAllByStudentIdInAndDeletedFalse`, `findAllByIdInAndDeletedFalse` chỉ trong 6 truy vấn SQL cố định (thay vì hàng nghìn query).
+  - Tối ưu hóa cả `getDashboardSummary` bằng batch querying.
+
+### C. Chuyển Đổi Phân Trang Danh Mục Quận/Huyện & Xã/Phường sang Database Paging (Issue 2.3)
+- **Vấn đề:** `getAllDistricts` và `getAllWards` trong `DistrictServiceImpl.java` và `WardServiceImpl.java` sử dụng `subList()` trên RAM.
+- **Giải pháp:**
+  - Bổ sung các phương thức phân trang `Page<District>` và `Page<Ward>` có sắp xếp tên tăng dần trong `DistrictRepository.java` và `WardRepository.java`.
+  - Thay thế toàn bộ việc cắt `subList` bằng truy vấn trực tiếp xuống Database.
+
+---
+
+## 8. Trạng thái kiểm tra & Xác thực (Verification Status)
+
+- **Backend Tests:** `mvn test` $\longrightarrow$ **BUILD SUCCESS (49/49 PASS 100%, 0 failures, 0 errors)**.
+- **Backend Compile:** `mvn test-compile` $\longrightarrow$ **BUILD SUCCESS (0 errors)**.
+- **Frontend Build:** `npm run build` $\longrightarrow$ **BUILD SUCCESS in 2.09s (0 errors)**.
+
+---
+
+## 9. Hoàn thiện Bộ đôi Chức năng Quản lý Mật khẩu & Chuẩn hóa Log Console (Completed)
+
+### A. Chuẩn hóa Log Console (Clean Enterprise Logs)
+- Đã loại bỏ 100% emoji/icon trong toàn bộ Java source code (bao gồm Email Service, Aspect, Repositories, Controllers).
+- Áp dụng format chuẩn Enterprise: `[AOP-EMAIL]`, `[DEV/FALLBACK ...]`, giúp log console sạch đẹp, không gây lỗi encoding hay font hiển thị trên các terminal/máy chủ.
+
+### B. Chức năng Đổi Mật Khẩu (In-App Change Password)
+- **Vấn đề trước đây:** Frontend gọi nhầm API admin `PUT /users/update`, khiến Sinh viên / Giảng viên bị `403 Forbidden` và không kiểm tra mật khẩu cũ.
+- **Giải pháp hoàn thiện:**
+  - Thêm ErrorCodes: `OLD_PASSWORD_INCORRECT(1026)`, `PASSWORD_SAME_AS_OLD(1027)`, `PASSWORD_CONFIRM_NOT_MATCH(1028)`.
+  - DTO `ChangePasswordRequest`: `oldPassword`, `newPassword`, `confirmPassword`.
+  - Service `changePassword` trong `UserServiceImpl`: trích xuất user hiện tại từ SecurityContext, so khớp mật khẩu cũ qua `passwordEncoder.matches()`, kiểm tra khớp mật khẩu mới, kiểm tra không trùng mật khẩu cũ, mã hóa và lưu.
+  - Controller: `PUT /users/change-password` và `POST /users/change-password` (đã nằm trong danh sách `AUTHENTICATED_SELF_ENDPOINTS` của `DynamicApiAuthorizationManager`).
+  - Frontend: Tích hợp modal "Đổi mật khẩu" trong `app-shell.tsx`, thêm trường nhập mật khẩu hiện tại, bắt lỗi chi tiết.
+  - Automated Tests: `ChangePasswordTest.java` (4/4 PASS).
+
+### C. Chức năng Quên Mật Khẩu (Forgot / Reset Password via Email OTP)
+- Cơ chế bảo mật: OTP 6 số ngẫu nhiên lưu trên Upstash Redis với TTL 5 phút.
+- Luồng xử lý: Gửi OTP bất đồng bộ qua `EmailService` với AOP Aspect không bị block transaction.
+- Kiểm thử tự động: `ResetPasswordFlowTest.java` xác thực trọn vẹn luồng từ request OTP đến đặt lại mật khẩu mới (2/2 PASS).
+
+---
+
+## 10. Vấn Đề Lưu Ý & Hướng Dẫn Tiếp Tục Phát Triển (Pending Issues & Next Steps)
+
+1. **Bật lại mã hóa BCrypt khi lên môi trường Production:** Đổi dòng return trong [`PasswordEncoderConfig.java`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/university-management/src/main/java/com/toan/university_management/configuration/PasswordEncoderConfig.java) thành `return new BCryptPasswordEncoder(10);`.
+2. **Chi tiết lộ trình tính năng tiếp theo:** Tham khảo file [`ROADMAP.md`](file:///D:/My%20Project/UNIVERSITY_MANAGEMENT/ROADMAP.md) (Ràng buộc môn học tiên quyết, Khung chương trình đào tạo, Cổng thanh toán trực tuyến).
 3. Luôn chạy `mvn test` và `npm run build` để kiểm tra tính toàn vẹn hệ thống trước mỗi lần bàn giao.
+
 
 

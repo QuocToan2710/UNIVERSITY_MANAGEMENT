@@ -79,11 +79,14 @@ public class WardServiceImpl implements WardService {
     @Override
     @Transactional(readOnly = true)
     public Page<WardResponse> getAllWards(Long districtId, Pageable pageable) {
-        List<WardResponse> all = getAllWards(districtId);
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), all.size());
-        List<WardResponse> paged = (start <= end) ? all.subList(start, end) : Collections.emptyList();
-        return new PageImpl<>(paged, pageable, all.size());
+        Page<Ward> wardPage;
+        if (districtId != null) {
+            wardPage = wardRepository.findAllByDistrictIdAndDeletedFalseOrderByWardNameAsc(districtId, pageable);
+        } else {
+            wardPage = wardRepository.findAllByDeletedFalseOrderByWardNameAsc(pageable);
+        }
+        List<WardResponse> content = enrichResponses(wardPage.getContent());
+        return new PageImpl<>(content, pageable, wardPage.getTotalElements());
     }
 
     @Override

@@ -39,6 +39,9 @@ public enum ErrorCode {
     EMAIL_NOT_FOUND(1018, "error.email.not.found", HttpStatus.NOT_FOUND),
     EMAIL_SEND_FAILED(1021, "error.email.send.failed", HttpStatus.INTERNAL_SERVER_ERROR),
     EMAIL_EXISTED(1023, "error.email.already.exists", HttpStatus.BAD_REQUEST),
+    OLD_PASSWORD_INCORRECT(1026, "error.user.old_password.incorrect", HttpStatus.BAD_REQUEST),
+    PASSWORD_SAME_AS_OLD(1027, "error.user.password.same_as_old", HttpStatus.BAD_REQUEST),
+    PASSWORD_CONFIRM_NOT_MATCH(1028, "error.user.password.confirm_not_match", HttpStatus.BAD_REQUEST),
 
     // === Master Data: Student, Teacher, Course
     STUDENT_NOT_FOUND(1014, "error.student.not.found", HttpStatus.NOT_FOUND),

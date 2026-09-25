@@ -76,11 +76,14 @@ public class DistrictServiceImpl implements DistrictService {
     @Override
     @Transactional(readOnly = true)
     public Page<DistrictResponse> getAllDistricts(Long provinceId, Pageable pageable) {
-        List<DistrictResponse> all = getAllDistricts(provinceId);
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), all.size());
-        List<DistrictResponse> paged = (start <= end) ? all.subList(start, end) : Collections.emptyList();
-        return new PageImpl<>(paged, pageable, all.size());
+        Page<District> districtPage;
+        if (provinceId != null) {
+            districtPage = districtRepository.findAllByProvinceIdAndDeletedFalseOrderByDistrictNameAsc(provinceId, pageable);
+        } else {
+            districtPage = districtRepository.findAllByDeletedFalseOrderByDistrictNameAsc(pageable);
+        }
+        List<DistrictResponse> content = enrichResponses(districtPage.getContent());
+        return new PageImpl<>(content, pageable, districtPage.getTotalElements());
     }
 
     @Override

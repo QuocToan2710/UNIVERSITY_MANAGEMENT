@@ -26,6 +26,8 @@ import com.toan.university_management.repository.masterdata.SubjectClassReposito
 import com.toan.university_management.repository.masterdata.SubjectRepository;
 import com.toan.university_management.repository.masterdata.TuitionFeeRepository;
 import com.toan.university_management.service.notification.NotificationService;
+import com.toan.university_management.model.masterdata.StudentSearchPaginationRQ;
+import com.toan.university_management.specification.masterdata.StudentSpecification;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -33,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -125,26 +128,23 @@ public class TuitionServiceImpl implements TuitionService {
             String search,
             Pageable pageable
     ) {
-        List<Student> allStudents = studentRepository.findAllByDeletedFalse();
+        String effectiveSem = (semester != null && !semester.isBlank() && !"ALL".equalsIgnoreCase(semester.trim())) ? semester.trim() : "1";
+        String effectiveYear = (academicYear != null && !academicYear.isBlank() && !"ALL".equalsIgnoreCase(academicYear.trim())) ? academicYear.trim() : "2024-2025";
 
-        if (classGroupId != null) {
-            allStudents = allStudents.stream()
-                    .filter(s -> Objects.equals(s.getClassGroupId(), classGroupId))
-                    .toList();
+        StudentSearchPaginationRQ rq = new StudentSearchPaginationRQ();
+        rq.setClassGroupId(classGroupId);
+        rq.setKeyword(search);
+        Specification<Student> spec = StudentSpecification.filter(rq);
+
+        if (status == null) {
+            Page<Student> studentPage = studentRepository.findAll(spec, pageable);
+            List<StudentTuitionSummaryResponse> pageContent = buildBatchStudentTuitionSummaries(studentPage.getContent(), effectiveSem, effectiveYear);
+            return new PageImpl<>(pageContent, pageable, studentPage.getTotalElements());
         }
 
-        if (search != null && !search.isBlank()) {
-            String q = search.trim().toLowerCase();
-            allStudents = allStudents.stream()
-                    .filter(s -> (s.getStudentCode() != null && s.getStudentCode().toLowerCase().contains(q)) ||
-                                 (s.getFullName() != null && s.getFullName().toLowerCase().contains(q)) ||
-                                 (s.getEmail() != null && s.getEmail().toLowerCase().contains(q)))
-                    .toList();
-        }
-
-        List<StudentTuitionSummaryResponse> summaries = allStudents.stream()
-                .map(s -> buildStudentTuitionSummary(s, semester, academicYear))
-                .filter(sum -> status == null || sum.getStatus() == status)
+        List<Student> matchingStudents = studentRepository.findAll(spec);
+        List<StudentTuitionSummaryResponse> summaries = buildBatchStudentTuitionSummaries(matchingStudents, effectiveSem, effectiveYear).stream()
+                .filter(sum -> sum.getStatus() == status)
                 .toList();
 
         int start = (int) pageable.getOffset();
@@ -158,9 +158,7 @@ public class TuitionServiceImpl implements TuitionService {
     @Transactional
     public TuitionDashboardSummaryResponse getDashboardSummary(String semester, String academicYear) {
         List<Student> allStudents = studentRepository.findAllByDeletedFalse();
-        List<StudentTuitionSummaryResponse> summaries = allStudents.stream()
-                .map(s -> buildStudentTuitionSummary(s, semester, academicYear))
-                .toList();
+        List<StudentTuitionSummaryResponse> summaries = buildBatchStudentTuitionSummaries(allStudents, semester, academicYear);
 
         long totalStudents = summaries.size();
         long totalCreditsEnrolled = summaries.stream().mapToLong(s -> s.getTotalCredits() != null ? s.getTotalCredits() : 0).sum();
@@ -260,123 +258,176 @@ public class TuitionServiceImpl implements TuitionService {
     }
 
     private StudentTuitionSummaryResponse buildStudentTuitionSummary(Student student, String semester, String academicYear) {
+        if (student == null) return null;
+        List<StudentTuitionSummaryResponse> list = buildBatchStudentTuitionSummaries(List.of(student), semester, academicYear);
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    private List<StudentTuitionSummaryResponse> buildBatchStudentTuitionSummaries(List<Student> students, String semester, String academicYear) {
+        if (students == null || students.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         String effectiveSem = (semester != null && !semester.isBlank() && !"ALL".equalsIgnoreCase(semester.trim())) ? semester.trim() : "1";
         String effectiveYear = (academicYear != null && !academicYear.isBlank() && !"ALL".equalsIgnoreCase(academicYear.trim())) ? academicYear.trim() : "2024-2025";
 
-        // Fetch enrollments of this student
-        List<Enrollment> allEnrollments = enrollmentRepository.findAllByStudentIdAndDeletedFalse(student.getId());
+        Set<Long> studentIds = students.stream().map(Student::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+
+        // 1. Batch load enrollments for all students
+        List<Enrollment> allEnrollments = studentIds.isEmpty() ? Collections.emptyList() :
+                enrollmentRepository.findAllByStudentIdInAndDeletedFalse(studentIds);
+        Map<Long, List<Enrollment>> enrollmentsByStudent = allEnrollments.stream()
+                .filter(e -> e.getStudentId() != null)
+                .collect(Collectors.groupingBy(Enrollment::getStudentId));
+
+        // 2. Batch load subject classes
         Set<Long> scIds = allEnrollments.stream().map(Enrollment::getSubjectClassId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, SubjectClass> scMap = scIds.isEmpty() ? Collections.emptyMap() :
+                subjectClassRepository.findAllByIdInAndDeletedFalse(scIds).stream()
+                        .collect(Collectors.toMap(SubjectClass::getId, Function.identity(), (a, b) -> a));
 
-        Map<Long, SubjectClass> scMap = subjectClassRepository.findAllByIdInAndDeletedFalse(scIds).stream()
-                .collect(Collectors.toMap(SubjectClass::getId, Function.identity()));
-
+        // 3. Batch load subjects
         Set<Long> subjectIds = scMap.values().stream().map(SubjectClass::getSubjectId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Long, Subject> subjectMap = subjectRepository.findAllByIdInAndDeletedFalse(subjectIds).stream()
-                .collect(Collectors.toMap(Subject::getId, Function.identity()));
+        Map<Long, Subject> subjectMap = subjectIds.isEmpty() ? Collections.emptyMap() :
+                subjectRepository.findAllByIdInAndDeletedFalse(subjectIds).stream()
+                        .collect(Collectors.toMap(Subject::getId, Function.identity(), (a, b) -> a));
 
-        // Filter matching enrollments for this semester & academicYear
-        List<Enrollment> matchingEnrollments = allEnrollments.stream().filter(e -> {
-            SubjectClass sc = scMap.get(e.getSubjectClassId());
-            if (sc == null) return false;
-            return matchSemester(sc.getSemester(), effectiveSem) && matchAcademicYear(sc.getAcademicYear(), effectiveYear);
-        }).toList();
+        // 4. Batch load tuition fees for this semester & academic year
+        List<TuitionFee> feeList = studentIds.isEmpty() ? Collections.emptyList() :
+                tuitionFeeRepository.findAllByStudentIdInAndSemesterAndAcademicYearAndDeletedFalse(studentIds, effectiveSem, effectiveYear);
+        Map<Long, TuitionFee> feeMap = feeList.stream()
+                .filter(f -> f.getStudentId() != null)
+                .collect(Collectors.toMap(TuitionFee::getStudentId, Function.identity(), (a, b) -> a));
 
-        List<TuitionItemResponse> items = new ArrayList<>();
-        int totalCredits = 0;
+        // 5. Batch load class groups and majors
+        Set<Long> cgIds = students.stream().map(Student::getClassGroupId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, ClassGroup> cgMap = cgIds.isEmpty() ? Collections.emptyMap() :
+                classGroupRepository.findAllByIdInAndDeletedFalse(cgIds).stream()
+                        .collect(Collectors.toMap(ClassGroup::getId, Function.identity(), (a, b) -> a));
 
-        for (Enrollment e : matchingEnrollments) {
-            SubjectClass sc = scMap.get(e.getSubjectClassId());
-            Subject sub = (sc != null && sc.getSubjectId() != null) ? subjectMap.get(sc.getSubjectId()) : null;
+        Set<Long> majorIds = cgMap.values().stream().map(ClassGroup::getMajorId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, Major> majorMap = majorIds.isEmpty() ? Collections.emptyMap() :
+                majorRepository.findAllByIdInAndDeletedFalse(majorIds).stream()
+                        .collect(Collectors.toMap(Major::getId, Function.identity(), (a, b) -> a));
 
-            int credit = (sub != null && sub.getCredit() > 0) ? sub.getCredit() : 3;
-            totalCredits += credit;
-            long itemAmount = credit * DEFAULT_PRICE_PER_CREDIT;
+        List<TuitionFee> feesToSave = new ArrayList<>();
+        List<StudentTuitionSummaryResponse> results = new ArrayList<>();
 
-            items.add(TuitionItemResponse.builder()
-                    .subjectClassId(sc != null ? sc.getId() : null)
-                    .subjectClassCode(sc != null ? sc.getSubjectClassCode() : "")
-                    .subjectClassName(sc != null ? sc.getName() : "")
-                    .subjectCode(sub != null ? sub.getSubjectCode() : "")
-                    .subjectName(sub != null ? sub.getName() : "")
-                    .credit(credit)
-                    .pricePerCredit(DEFAULT_PRICE_PER_CREDIT)
-                    .totalAmount(itemAmount)
-                    .enrolledAt(e.getEnrolledAt() != null ? e.getEnrolledAt().toString() : null)
-                    .status("Đã ghi danh")
-                    .build());
-        }
+        for (Student student : students) {
+            List<Enrollment> studentEnrollments = enrollmentsByStudent.getOrDefault(student.getId(), Collections.emptyList());
 
-        long calculatedTotalAmount = totalCredits * DEFAULT_PRICE_PER_CREDIT;
+            List<Enrollment> matchingEnrollments = studentEnrollments.stream().filter(e -> {
+                SubjectClass sc = scMap.get(e.getSubjectClassId());
+                if (sc == null) return false;
+                return matchSemester(sc.getSemester(), effectiveSem) && matchAcademicYear(sc.getAcademicYear(), effectiveYear);
+            }).toList();
 
-        // Fetch or create TuitionFee record in DB
-        TuitionFee tuitionFee = tuitionFeeRepository.findByStudentIdAndSemesterAndAcademicYearAndDeletedFalse(
-                student.getId(), effectiveSem, effectiveYear).orElse(null);
+            List<TuitionItemResponse> items = new ArrayList<>();
+            int totalCredits = 0;
 
-        if (tuitionFee == null) {
-            tuitionFee = TuitionFee.builder()
+            for (Enrollment e : matchingEnrollments) {
+                SubjectClass sc = scMap.get(e.getSubjectClassId());
+                Subject sub = (sc != null && sc.getSubjectId() != null) ? subjectMap.get(sc.getSubjectId()) : null;
+
+                int credit = (sub != null && sub.getCredit() > 0) ? sub.getCredit() : 3;
+                totalCredits += credit;
+                long itemAmount = credit * DEFAULT_PRICE_PER_CREDIT;
+
+                items.add(TuitionItemResponse.builder()
+                        .subjectClassId(sc != null ? sc.getId() : null)
+                        .subjectClassCode(sc != null ? sc.getSubjectClassCode() : "")
+                        .subjectClassName(sc != null ? sc.getName() : "")
+                        .subjectCode(sub != null ? sub.getSubjectCode() : "")
+                        .subjectName(sub != null ? sub.getName() : "")
+                        .credit(credit)
+                        .pricePerCredit(DEFAULT_PRICE_PER_CREDIT)
+                        .totalAmount(itemAmount)
+                        .enrolledAt(e.getEnrolledAt() != null ? e.getEnrolledAt().toString() : null)
+                        .status("Đã ghi danh")
+                        .build());
+            }
+
+            long calculatedTotalAmount = totalCredits * DEFAULT_PRICE_PER_CREDIT;
+            TuitionFee tuitionFee = feeMap.get(student.getId());
+
+            if (tuitionFee == null) {
+                tuitionFee = TuitionFee.builder()
+                        .studentId(student.getId())
+                        .semester(effectiveSem)
+                        .academicYear(effectiveYear)
+                        .totalCredits(totalCredits)
+                        .pricePerCredit(DEFAULT_PRICE_PER_CREDIT)
+                        .totalAmount(calculatedTotalAmount)
+                        .discountAmount(0L)
+                        .paidAmount(0L)
+                        .balanceAmount(calculatedTotalAmount)
+                        .dueDate(LocalDate.now().plusMonths(1))
+                        .status(calculatedTotalAmount > 0 ? TuitionStatus.UNPAID : TuitionStatus.PAID)
+                        .build();
+                feesToSave.add(tuitionFee);
+            } else {
+                tuitionFee.setTotalCredits(totalCredits);
+                tuitionFee.setTotalAmount(calculatedTotalAmount);
+                tuitionFee.calculateAmounts();
+                feesToSave.add(tuitionFee);
+            }
+
+            String classGroupCode = "";
+            String classGroupName = "";
+            String majorName = "";
+
+            if (student.getClassGroupId() != null) {
+                ClassGroup cg = cgMap.get(student.getClassGroupId());
+                if (cg != null) {
+                    classGroupCode = cg.getClassCode() != null ? cg.getClassCode() : "";
+                    classGroupName = cg.getClassName() != null ? cg.getClassName() : "";
+                    if (cg.getMajorId() != null) {
+                        Major m = majorMap.get(cg.getMajorId());
+                        if (m != null) majorName = m.getName();
+                    }
+                }
+            }
+
+            results.add(StudentTuitionSummaryResponse.builder()
+                    .tuitionFeeId(tuitionFee.getId())
                     .studentId(student.getId())
+                    .studentCode(student.getStudentCode())
+                    .fullName(student.getFullName())
+                    .email(student.getEmail())
+                    .phone(student.getPhoneNumber())
+                    .classGroupId(student.getClassGroupId())
+                    .classGroupCode(classGroupCode)
+                    .classGroupName(classGroupName)
+                    .majorName(majorName)
                     .semester(effectiveSem)
                     .academicYear(effectiveYear)
                     .totalCredits(totalCredits)
                     .pricePerCredit(DEFAULT_PRICE_PER_CREDIT)
-                    .totalAmount(calculatedTotalAmount)
-                    .discountAmount(0L)
-                    .paidAmount(0L)
-                    .balanceAmount(calculatedTotalAmount)
-                    .dueDate(LocalDate.now().plusMonths(1))
-                    .status(calculatedTotalAmount > 0 ? TuitionStatus.UNPAID : TuitionStatus.PAID)
-                    .build();
-            tuitionFee = tuitionFeeRepository.save(tuitionFee);
-        } else {
-            // Update total credits & amounts if student registered more or canceled courses
-            tuitionFee.setTotalCredits(totalCredits);
-            tuitionFee.setTotalAmount(calculatedTotalAmount);
-            tuitionFee.calculateAmounts();
-            tuitionFee = tuitionFeeRepository.save(tuitionFee);
+                    .totalAmount(tuitionFee.getTotalAmount())
+                    .discountAmount(tuitionFee.getDiscountAmount())
+                    .paidAmount(tuitionFee.getPaidAmount())
+                    .balanceAmount(tuitionFee.getBalanceAmount())
+                    .dueDate(tuitionFee.getDueDate())
+                    .status(tuitionFee.getStatus())
+                    .statusDescription(tuitionFee.getStatus() != null ? tuitionFee.getStatus().getDescription() : "")
+                    .notes(tuitionFee.getNotes())
+                    .items(items)
+                    .build());
         }
 
-        // Fetch class group and major names
-        String classGroupCode = "";
-        String classGroupName = "";
-        String majorName = "";
-
-        if (student.getClassGroupId() != null) {
-            ClassGroup cg = classGroupRepository.findByIdAndDeletedFalse(student.getClassGroupId()).orElse(null);
-            if (cg != null) {
-                classGroupCode = cg.getClassCode() != null ? cg.getClassCode() : "";
-                classGroupName = cg.getClassName() != null ? cg.getClassName() : "";
-                if (cg.getMajorId() != null) {
-                    Major m = majorRepository.findByIdAndDeletedFalse(cg.getMajorId()).orElse(null);
-                    if (m != null) majorName = m.getName();
+        if (!feesToSave.isEmpty()) {
+            List<TuitionFee> savedFees = tuitionFeeRepository.saveAll(feesToSave);
+            Map<Long, Long> studentToSavedFeeId = savedFees.stream()
+                    .filter(f -> f.getStudentId() != null && f.getId() != null)
+                    .collect(Collectors.toMap(TuitionFee::getStudentId, TuitionFee::getId, (a, b) -> a));
+            for (var res : results) {
+                if (res.getTuitionFeeId() == null && studentToSavedFeeId.containsKey(res.getStudentId())) {
+                    res.setTuitionFeeId(studentToSavedFeeId.get(res.getStudentId()));
                 }
             }
         }
 
-        return StudentTuitionSummaryResponse.builder()
-                .tuitionFeeId(tuitionFee.getId())
-                .studentId(student.getId())
-                .studentCode(student.getStudentCode())
-                .fullName(student.getFullName())
-                .email(student.getEmail())
-                .phone(student.getPhoneNumber())
-                .classGroupId(student.getClassGroupId())
-                .classGroupCode(classGroupCode)
-                .classGroupName(classGroupName)
-                .majorName(majorName)
-                .semester(effectiveSem)
-                .academicYear(effectiveYear)
-                .totalCredits(totalCredits)
-                .pricePerCredit(DEFAULT_PRICE_PER_CREDIT)
-                .totalAmount(tuitionFee.getTotalAmount())
-                .discountAmount(tuitionFee.getDiscountAmount())
-                .paidAmount(tuitionFee.getPaidAmount())
-                .balanceAmount(tuitionFee.getBalanceAmount())
-                .dueDate(tuitionFee.getDueDate())
-                .status(tuitionFee.getStatus())
-                .statusDescription(tuitionFee.getStatus() != null ? tuitionFee.getStatus().getDescription() : "")
-                .notes(tuitionFee.getNotes())
-                .items(items)
-                .build();
+        return results;
     }
 
     private Student resolveCurrentStudent() {

@@ -16,6 +16,8 @@ public interface UserService {
     UserResponse updateUserRoles(Long id, List<String> roleNames);
     UserResponse getMyInfo();
 
+    void changePassword(com.toan.university_management.model.identity.ChangePasswordRequest request);
+
     void deleteUser(Long id);
 }
 
